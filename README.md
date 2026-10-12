@@ -2,6 +2,10 @@
 
 # Memos
 
+> This is a personal fork based on [Memos v0.31.0](https://github.com/usememos/memos/releases/tag/v0.31.0), maintained for personal use and customization.
+>
+> The release badges, and live demo below refer to the upstream project.
+
 <img src="./web/public/logo.webp" alt="" width="96" align="right">
 
 **Fast enough for every thought. Private enough for all of them.**

@@ -12,7 +12,7 @@ on:
   workflow_call:
   workflow_dispatch:
   pull_request:
-    branches: [main]
+    branches: [personal]
     paths:
       # Anything that can change how an existing database is opened or upgraded.
       - "store/migration/**"
@@ -94,6 +94,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run release smoke test
+        env:
+          # Test this fork against its fixed upstream baseline, even without remote tags.
+          MEMOS_SMOKE_PREVIOUS_IMAGE: neosmemo/memos:0.31.0
         run: ./scripts/release_smoke_test.sh
 
   entrypoint:

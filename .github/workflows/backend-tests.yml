@@ -2,10 +2,11 @@ name: Backend Tests
 
 on:
   push:
-    branches: [main]
+    branches: [personal]
   pull_request:
-    branches: [main]
+    branches: [personal]
     paths:
+      - ".github/workflows/backend-tests.yml"
       - "go.mod"
       - "go.sum"
       - "**.go"
@@ -66,7 +67,7 @@ jobs:
           case "${{ matrix.test-group }}" in
             store)
               # Run store tests for all drivers (sqlite, mysql, postgres)
-              DRIVER= go test -v -coverprofile=coverage.out -covermode=atomic ./store/...
+              DRIVER='' go test -v -coverprofile=coverage.out -covermode=atomic ./store/...
               ;;
             server)
               # Includes ./server/test, which boots the real server via
@@ -83,11 +84,3 @@ jobs:
           esac
         env:
           DRIVER: sqlite
-
-      - name: Upload coverage
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./coverage.out
-          flags: ${{ matrix.test-group }}
-          fail_ci_if_error: false

@@ -2,10 +2,11 @@ name: Frontend Tests
 
 on:
   push:
-    branches: [main]
+    branches: [personal]
   pull_request:
-    branches: [main]
+    branches: [personal]
     paths:
+      - ".github/workflows/frontend-tests.yml"
       - "web/**"
 
 concurrency:

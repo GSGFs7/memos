@@ -2,10 +2,11 @@ name: Proto Linter
 
 on:
   push:
-    branches: [main]
+    branches: [personal]
   pull_request:
-    branches: [main]
+    branches: [personal]
     paths:
+      - ".github/workflows/proto-linter.yml"
       - "proto/**"
 
 concurrency:

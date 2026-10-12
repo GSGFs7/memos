@@ -2,6 +2,11 @@ name: Publish Docker Image
 
 on:
   workflow_dispatch:
+  push:
+    branches: [personal]
+    paths-ignore:
+      - "deployments/image.json"
+      - "deployments/k8s/kustomization.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

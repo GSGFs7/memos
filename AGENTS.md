@@ -133,7 +133,7 @@ Black-box service tests live in `server/api/v1/test/`, unit tests next to the co
 
 ## CI Reference
 
-- Backend CI: Go 1.27.2, `go mod tidy -go=1.27.2`, golangci-lint v2.13.1, test groups `store`, `server`, `internal`, `other`
+- Backend CI: Go 1.27.2, `go mod tidy -go=1.27.2`, golangci-lint v2.14.0, test groups `store`, `server`, `internal`, `other`
   (`cmd`, `core`, `markdown`, `filter`, `provider`, `proto`).
 - Frontend CI: Node 24, pnpm 11.0.1, `pnpm lint`, `pnpm test`, `pnpm build`.
 - Proto CI: `buf lint` and `buf format` check.

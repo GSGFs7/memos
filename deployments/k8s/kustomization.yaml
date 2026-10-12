@@ -8,4 +8,4 @@ resources:
 images:
   - name: memos
     newName: "ghcr.io/gsgfs7/memos"
-    digest: "sha256:5331a6819cd2d9fed4a2153c9e0cf08f3322126b949f2d5c011eeea4b16ee759"
+    digest: "sha256:e3bd3da4dbee85ffbd2c4205f53eec06e34f6e5d8d0a25941c719123d93fb170"

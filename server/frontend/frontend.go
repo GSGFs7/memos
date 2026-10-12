@@ -126,21 +126,7 @@ func (s *FrontendService) registerRoutes(e *echo.Echo) {
 }
 
 func (s *FrontendService) getRobotsTXT(c *echo.Context) error {
-	if err := s.requirePublicAccess(c.Request().Context()); err != nil {
-		return err
-	}
-	instanceURL, err := normalizeInstanceURL(s.Profile.InstanceURL)
-	if err != nil {
-		return err
-	}
-
-	robotsTXT := strings.Join([]string{
-		"User-agent: *",
-		"Allow: /",
-		"Host: " + instanceURL,
-		"Sitemap: " + instanceURL + "/sitemap.xml",
-	}, "\n")
-	return c.String(http.StatusOK, robotsTXT)
+	return c.String(http.StatusOK, "User-agent: *\nDisallow: /\n")
 }
 
 func (s *FrontendService) getSitemapXML(c *echo.Context) error {

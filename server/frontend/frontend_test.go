@@ -172,7 +172,7 @@ func TestFrontendService_RobotsTXT(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Equal(t, "text/plain; charset=UTF-8", rec.Header().Get("Content-Type"))
-	require.Equal(t, "User-agent: *\nAllow: /\nHost: https://demo.usememos.com\nSitemap: https://demo.usememos.com/sitemap.xml", rec.Body.String())
+	require.Equal(t, "User-agent: *\nDisallow: /\n", rec.Body.String())
 }
 
 func TestFrontendService_SitemapXML(t *testing.T) {
@@ -220,7 +220,7 @@ func TestFrontendService_SitemapXML(t *testing.T) {
 	require.NotContains(t, rec.Body.String(), "privatememo")
 }
 
-func TestFrontendService_SitemapRoutesRequireInstanceURL(t *testing.T) {
+func TestFrontendService_DiscoveryRoutesWithoutInstanceURL(t *testing.T) {
 	ctx := context.Background()
 	testStore := teststore.NewTestingStore(ctx, t)
 	setFrontendAccessMode(ctx, t, testStore, storepb.InstanceAccessMode_INSTANCE_ACCESS_MODE_PUBLIC)
@@ -233,11 +233,16 @@ func TestFrontendService_SitemapRoutesRequireInstanceURL(t *testing.T) {
 		rec := httptest.NewRecorder()
 		e.ServeHTTP(rec, req)
 
-		require.Equal(t, http.StatusNotFound, rec.Code)
+		if path == "/robots.txt" {
+			require.Equal(t, http.StatusOK, rec.Code)
+			require.Equal(t, "User-agent: *\nDisallow: /\n", rec.Body.String())
+		} else {
+			require.Equal(t, http.StatusNotFound, rec.Code)
+		}
 	}
 }
 
-func TestFrontendService_SitemapRoutesRequirePublicAccess(t *testing.T) {
+func TestFrontendService_DiscoveryRoutesWithPrivateAccess(t *testing.T) {
 	ctx := context.Background()
 	testStore := teststore.NewTestingStore(ctx, t)
 	setFrontendAccessMode(ctx, t, testStore, storepb.InstanceAccessMode_INSTANCE_ACCESS_MODE_PRIVATE)
@@ -250,7 +255,12 @@ func TestFrontendService_SitemapRoutesRequirePublicAccess(t *testing.T) {
 		rec := httptest.NewRecorder()
 		e.ServeHTTP(rec, req)
 
-		require.Equal(t, http.StatusNotFound, rec.Code)
+		if path == "/robots.txt" {
+			require.Equal(t, http.StatusOK, rec.Code)
+			require.Equal(t, "User-agent: *\nDisallow: /\n", rec.Body.String())
+		} else {
+			require.Equal(t, http.StatusNotFound, rec.Code)
+		}
 	}
 }
 

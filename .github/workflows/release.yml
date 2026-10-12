@@ -118,7 +118,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   record-image:
-    name: Record published image version
+    name: Record published image and deployment digest
     needs: publish
     runs-on: ubuntu-latest
     permissions:
@@ -128,6 +128,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: personal
+          fetch-depth: 0
 
       - name: Update image record
         env:
@@ -135,23 +136,20 @@ jobs:
           DIGEST: ${{ needs.publish.outputs.digest }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: |
-          mkdir -p deployments
-          jq -n \
-            --arg image "$IMAGE" \
-            --arg digest "$DIGEST" \
-            --arg commit "$SOURCE_COMMIT" \
-            '{image: $image, tag: "personal", digest: $digest, sourceCommit: $commit, platforms: ["linux/amd64", "linux/arm64"]}' \
-            > deployments/image.json
+          # Do not deploy an older image with templates/source changed during the build.
+          git diff --quiet "$SOURCE_COMMIT" HEAD -- . \
+            ':(exclude)deployments/image.json' \
+            ':(exclude)deployments/k8s/kustomization.yaml'
+          python3 deployments/update_image.py
 
       - name: Commit and push image record
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add deployments/image.json
+          git add deployments/image.json deployments/k8s/kustomization.yaml
           if git diff --cached --quiet; then
             echo "Image record is already current."
             exit 0
           fi
-          git commit -m "chore: record published personal image"
-          git pull --rebase origin personal
+          git commit -m "chore: deploy published personal image"
           git push origin HEAD:personal

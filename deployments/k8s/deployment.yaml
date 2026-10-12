@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memos
+  namespace: memos
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: memos
+  template:
+    metadata:
+      labels:
+        app: memos
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: memos
+        image: memos
+        ports:
+        - name: http
+          containerPort: 5230
+        env:
+        - name: MEMOS_MODE
+          value: prod
+        - name: MEMOS_PORT
+          value: '5230'
+        - name: MEMOS_DATA
+          value: /var/opt/memos
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        startupProbe:
+          httpGet:
+            path: /api/v1/instance/profile
+            port: http
+          periodSeconds: 5
+          failureThreshold: 60
+        readinessProbe:
+          httpGet:
+            path: /api/v1/instance/profile
+            port: http
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: http
+          periodSeconds: 20
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: data
+          mountPath: /var/opt/memos
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: memos-data

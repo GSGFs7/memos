@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: memos
+    newName: "ghcr.io/gsgfs7/memos"
+    digest: "sha256:5331a6819cd2d9fed4a2153c9e0cf08f3322126b949f2d5c011eeea4b16ee759"

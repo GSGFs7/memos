@@ -25,6 +25,9 @@ jobs:
     needs: upgrade-smoke
     if: github.ref == 'refs/heads/personal'
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.image.outputs.name }}
+      digest: ${{ steps.build.outputs.digest }}
     permissions:
       contents: read
       packages: write
@@ -113,3 +116,42 @@ jobs:
             echo "- Digest: \`$IMAGE@$DIGEST\`"
             echo "- Platforms: linux/amd64, linux/arm64"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  record-image:
+    name: Record published image version
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout current personal branch
+        uses: actions/checkout@v6
+        with:
+          ref: personal
+
+      - name: Update image record
+        env:
+          IMAGE: ${{ needs.publish.outputs.image }}
+          DIGEST: ${{ needs.publish.outputs.digest }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          mkdir -p deployments
+          jq -n \
+            --arg image "$IMAGE" \
+            --arg digest "$DIGEST" \
+            --arg commit "$SOURCE_COMMIT" \
+            '{image: $image, tag: "personal", digest: $digest, sourceCommit: $commit, platforms: ["linux/amd64", "linux/arm64"]}' \
+            > deployments/image.json
+
+      - name: Commit and push image record
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deployments/image.json
+          if git diff --cached --quiet; then
+            echo "Image record is already current."
+            exit 0
+          fi
+          git commit -m "chore: record published personal image"
+          git pull --rebase origin personal
+          git push origin HEAD:personal

@@ -1,10 +1,10 @@
-> ✨ Featured sponsor: [CodeRabbit — Industry-leading AI code reviews](https://coderabbit.link/usememos).
-
-# Memos
-
 > This is a personal fork based on [Memos v0.31.0](https://github.com/usememos/memos/releases/tag/v0.31.0), maintained for personal use and customization.
 >
 > The release badges, and live demo below refer to the upstream project.
+
+> ✨ Featured sponsor: [CodeRabbit — Industry-leading AI code reviews](https://coderabbit.link/usememos).
+
+# Memos
 
 <img src="./web/public/logo.webp" alt="" width="96" align="right">
 

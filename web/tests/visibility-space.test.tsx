@@ -15,6 +15,11 @@ import {
 const values = (options: readonly { value: Visibility }[]) => options.map((option) => option.value);
 
 describe("Space visibility presentation", () => {
+  it("falls back to private for invalid or missing audience names", () => {
+    expect(convertVisibilityFromString("unknown")).toBe(Visibility.PRIVATE);
+    expect(convertVisibilityFromString("")).toBe(Visibility.PRIVATE);
+  });
+
   it("round-trips the Space audience name", () => {
     expect(convertVisibilityFromString("SPACE")).toBe(Visibility.SPACE);
     expect(convertVisibilityToString(Visibility.SPACE)).toBe("SPACE");

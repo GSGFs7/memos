@@ -465,11 +465,16 @@ func TestHTMLMetaFetcherRejectsUnsafeURLsAndRedirects(t *testing.T) {
 	require.ErrorIs(t, err, ErrInternalIP)
 }
 
-func TestValidateURLCGNAT(t *testing.T) {
+func TestValidateURLReservedIPv4Ranges(t *testing.T) {
 	tests := []struct {
 		ip      string
 		blocked bool
 	}{
+		{"0.0.0.0", true},
+		{"0.1.2.3", true},
+		{"0.255.255.255", true},
+		{"::ffff:0.1.2.3", true},
+		{"1.0.0.1", false},
 		{"100.63.255.255", false},
 		{"100.64.0.0", true},
 		{"100.100.100.200", true},
@@ -504,7 +509,7 @@ func TestSecureDialContextRejectsResolvedInternalIP(t *testing.T) {
 		dialContext = originalDialContext
 	})
 
-	for _, ip := range []string{"127.0.0.1", "100.100.100.200", "::ffff:100.100.100.200"} {
+	for _, ip := range []string{"127.0.0.1", "0.1.2.3", "::ffff:0.1.2.3", "100.100.100.200", "::ffff:100.100.100.200"} {
 		t.Run(ip, func(t *testing.T) {
 			dialContext = func(context.Context, string, string) (net.Conn, error) {
 				t.Fatal("internal IP should be rejected before dialing")

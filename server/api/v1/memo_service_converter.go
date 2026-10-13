@@ -208,6 +208,14 @@ func (s *APIV1Service) convertReactionsFromStoreWithCreators(ctx context.Context
 }
 
 func convertReactionFromStoreWithCreators(reaction *store.Reaction, creatorsByID map[int32]*store.User, memoName string) (*v1pb.Reaction, error) {
+	if reaction.CreatorID == 0 && reaction.AnonymousCount > 0 {
+		return &v1pb.Reaction{
+			Name:           fmt.Sprintf("%s/%s%d", memoName, ReactionNamePrefix, reaction.ID),
+			ReactionType:   reaction.ReactionType,
+			CreateTime:     timestamppb.New(time.Unix(reaction.CreatedTs, 0)),
+			AnonymousCount: reaction.AnonymousCount,
+		}, nil
+	}
 	creator := creatorsByID[reaction.CreatorID]
 	if creator == nil {
 		return nil, errReactionCreatorNotFound

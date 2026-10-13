@@ -287,6 +287,8 @@ func validateAndNormalizeDeploymentInstanceSetting(setting *storepb.InstanceSett
 		if err := normalizeDeploymentAISetting(setting.GetAiSetting()); err != nil {
 			return err
 		}
+	case storepb.InstanceSettingKey_ANONYMOUS_REACTION:
+		return NormalizeAnonymousReactionSetting(setting.GetAnonymousReactionSetting())
 	case storepb.InstanceSettingKey_ACCESS:
 		access := setting.GetAccessSetting()
 		if access == nil {

@@ -47,6 +47,8 @@ func (s *Store) UpsertInstanceSetting(ctx context.Context, upsert *storepb.Insta
 		valueBytes, err = protojson.Marshal(upsert.GetNotificationSetting())
 	} else if upsert.Key == storepb.InstanceSettingKey_AI {
 		valueBytes, err = protojson.Marshal(upsert.GetAiSetting())
+	} else if upsert.Key == storepb.InstanceSettingKey_ANONYMOUS_REACTION {
+		valueBytes, err = protojson.Marshal(upsert.GetAnonymousReactionSetting())
 	} else if upsert.Key == storepb.InstanceSettingKey_ACCESS {
 		valueBytes, err = protojson.Marshal(upsert.GetAccessSetting())
 	} else {
@@ -445,6 +447,12 @@ func convertInstanceSettingFromRaw(instanceSettingRaw *InstanceSetting) (*storep
 			return nil, err
 		}
 		instanceSetting.Value = &storepb.InstanceSetting_AiSetting{AiSetting: aiSetting}
+	case storepb.InstanceSettingKey_ANONYMOUS_REACTION.String():
+		setting := &storepb.InstanceAnonymousReactionSetting{}
+		if err := protojsonUnmarshaler.Unmarshal([]byte(instanceSettingRaw.Value), setting); err != nil {
+			return nil, err
+		}
+		instanceSetting.Value = &storepb.InstanceSetting_AnonymousReactionSetting{AnonymousReactionSetting: setting}
 	case storepb.InstanceSettingKey_ACCESS.String():
 		accessSetting := &storepb.InstanceAccessSetting{}
 		if err := protojsonUnmarshaler.Unmarshal([]byte(instanceSettingRaw.Value), accessSetting); err != nil {

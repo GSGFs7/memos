@@ -1,0 +1,1 @@
+ALTER TABLE reaction ADD COLUMN anonymous_count BIGINT NOT NULL DEFAULT 0;

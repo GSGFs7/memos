@@ -39,6 +39,11 @@ type Profile struct {
 	// TrustedProxies lists the proxies whose forwarding headers identify the
 	// client: CIDRs, addresses, or the keywords "private" and "none".
 	TrustedProxies []string
+	// AnonymousReactionSiteKey and AnonymousReactionSecret configure Turnstile only for anonymous reactions.
+	AnonymousReactionSiteKey string
+	AnonymousReactionSecret  string
+	// AnonymousReactionHostnames are the exact front-end hostnames accepted by Siteverify.
+	AnonymousReactionHostnames []string
 }
 
 func checkDataDir(dataDir string) (string, error) {
@@ -71,6 +76,20 @@ func (p *Profile) Validate() error {
 		return err
 	}
 	p.InstanceURL = instanceURL
+	if p.AnonymousReactionSiteKey != "" || p.AnonymousReactionSecret != "" || len(p.AnonymousReactionHostnames) > 0 {
+		p.AnonymousReactionSiteKey = strings.TrimSpace(p.AnonymousReactionSiteKey)
+		p.AnonymousReactionSecret = strings.TrimSpace(p.AnonymousReactionSecret)
+		if strings.TrimSpace(p.AnonymousReactionSiteKey) == "" || strings.TrimSpace(p.AnonymousReactionSecret) == "" || len(p.AnonymousReactionHostnames) == 0 {
+			return errors.New("anonymous reactions require a Turnstile site key, secret and expected hostnames")
+		}
+		for i, hostname := range p.AnonymousReactionHostnames {
+			hostname = strings.ToLower(strings.TrimSpace(hostname))
+			if hostname == "" || strings.ContainsAny(hostname, "/:*,@?#[] \t\r\n") {
+				return errors.New("anonymous reaction hostnames must be exact hostnames without schemes or ports")
+			}
+			p.AnonymousReactionHostnames[i] = hostname
+		}
+	}
 
 	// Set default data directory if not specified
 	if p.Data == "" {

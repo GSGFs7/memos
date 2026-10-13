@@ -108,6 +108,15 @@ service MemoService {
     };
     option (google.api.method_signature) = "name";
   }
+  // AddAnonymousMemoReaction increments an anonymous reaction after human verification.
+  rpc AddAnonymousMemoReaction(AddAnonymousMemoReactionRequest) returns (Reaction) {
+    option (google.api.http) = {
+      post: "/api/v1/{name=memos/*}/reactions:anonymous"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name,reaction_type";
+  }
+
   // DeleteMemoReaction deletes a reaction for a memo.
   rpc DeleteMemoReaction(DeleteMemoReactionRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {delete: "/api/v1/{name=memos/*/reactions/*}"};
@@ -195,6 +204,10 @@ message Reaction {
 
   // Output only. The creation timestamp.
   google.protobuf.Timestamp create_time = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Output only. Anonymous additions represented by this aggregate. Its creator is empty.
+  // Zero for a signed-in user's reaction.
+  int64 anonymous_count = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message Memo {
@@ -673,4 +686,12 @@ message LinkMetadata {
 
   // The link image URL.
   string image = 4;
+}
+
+// Request to add an anonymous reaction. The verification token travels in Challenge-Token.
+message AddAnonymousMemoReactionRequest {
+  // Required. Memo resource name, in the format memos/{memo}.
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  // Required. One of the instance's configured reaction types.
+  string reaction_type = 2 [(google.api.field_behavior) = REQUIRED];
 }

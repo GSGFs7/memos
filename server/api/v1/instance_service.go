@@ -72,6 +72,15 @@ func (s *APIV1Service) GetInstanceProfile(ctx context.Context, _ *v1pb.GetInstan
 		AccessMode:  convertInstanceAccessModeFromStore(accessSetting.AccessMode),
 		Challenge:   s.challengeProfile(),
 	}
+	if accessSetting.AccessMode == storepb.InstanceAccessMode_INSTANCE_ACCESS_MODE_PUBLIC {
+		challenge, err := s.resolveAnonymousReactionChallenge(ctx)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to get anonymous reaction configuration")
+		}
+		if challenge != nil {
+			instanceProfile.AnonymousReactionChallenge = &v1pb.InstanceProfile_Challenge{Provider: challenge.Provider(), SiteKey: challenge.SiteKey()}
+		}
+	}
 	return instanceProfile, nil
 }
 
@@ -136,6 +145,10 @@ func (s *APIV1Service) getInstanceSettingByName(ctx context.Context, name string
 		var setting *storepb.InstanceAISetting
 		setting, err = s.Store.GetInstanceAISetting(ctx)
 		instanceSetting = &storepb.InstanceSetting{Key: instanceSettingKey, Value: &storepb.InstanceSetting_AiSetting{AiSetting: setting}}
+	case storepb.InstanceSettingKey_ANONYMOUS_REACTION:
+		var setting *storepb.InstanceAnonymousReactionSetting
+		setting, err = s.effectiveAnonymousReactionSetting(ctx)
+		instanceSetting = &storepb.InstanceSetting{Key: instanceSettingKey, Value: &storepb.InstanceSetting_AnonymousReactionSetting{AnonymousReactionSetting: setting}}
 	case storepb.InstanceSettingKey_ACCESS:
 		var setting *storepb.InstanceAccessSetting
 		setting, err = s.Store.GetInstanceAccessSetting(ctx)
@@ -147,9 +160,10 @@ func (s *APIV1Service) getInstanceSettingByName(ctx context.Context, name string
 		return nil, status.Errorf(codes.Internal, "failed to get instance setting: %v", err)
 	}
 
-	// Storage and notification settings contain credentials; restrict to admins only.
+	// Credential-bearing instance settings are restricted to administrators.
 	if instanceSetting.Key == storepb.InstanceSettingKey_STORAGE ||
-		instanceSetting.Key == storepb.InstanceSettingKey_NOTIFICATION {
+		instanceSetting.Key == storepb.InstanceSettingKey_NOTIFICATION ||
+		instanceSetting.Key == storepb.InstanceSettingKey_ANONYMOUS_REACTION {
 		user, err := caller.currentUser(ctx, s)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
@@ -244,6 +258,24 @@ func (s *APIV1Service) UpdateInstanceSetting(ctx context.Context, request *v1pb.
 		}
 		if err := store.PrepareInstanceStorageSettingUpdate(updateSetting.GetStorageSetting(), existing); err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid storage setting: %v", err)
+		}
+	case storepb.InstanceSettingKey_ANONYMOUS_REACTION:
+		config := updateSetting.GetAnonymousReactionSetting()
+		if config == nil {
+			return nil, status.Error(codes.InvalidArgument, "anonymous reaction setting is required")
+		}
+		existing, err := s.effectiveAnonymousReactionSetting(ctx)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to get anonymous reaction configuration")
+		}
+		if config.SecretKey == "" {
+			if config.SiteKey != existing.SiteKey && existing.SecretKey != "" {
+				return nil, status.Error(codes.InvalidArgument, "secret key is required when changing the site key")
+			}
+			config.SecretKey = existing.SecretKey
+		}
+		if err := store.NormalizeAnonymousReactionSetting(config); err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
 	case storepb.InstanceSettingKey_AI:
 		if err := s.prepareInstanceAISettingForUpdate(ctx, updateSetting.GetAiSetting()); err != nil {

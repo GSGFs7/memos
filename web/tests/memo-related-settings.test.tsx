@@ -4,18 +4,30 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import MemoRelatedSettings from "@/components/Settings/MemoRelatedSettings";
 import {
   type InstanceSetting,
+  InstanceSetting_AnonymousReactionSettingSchema,
   InstanceSetting_Key,
   InstanceSetting_MemoRelatedSettingSchema,
+  InstanceSettingSchema,
 } from "@/types/proto/api/v1/instance_service_pb";
 
 const mocks = vi.hoisted(() => ({
   instance: {
     memoRelatedSetting: {},
+    profile: {},
     updateSetting: vi.fn(),
     fetchSetting: vi.fn(),
   },
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
+}));
+
+const anonymousSetting = create(InstanceSettingSchema, {
+  name: "instance/settings/ANONYMOUS_REACTION",
+  value: { case: "anonymousReactionSetting", value: create(InstanceSetting_AnonymousReactionSettingSchema) },
+});
+vi.mock("@/hooks/useInstanceQueries", () => ({
+  useInstanceSetting: () => ({ data: anonymousSetting, isLoading: false, isError: false }),
+  useUpdateInstanceSetting: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/contexts/InstanceContext", () => ({

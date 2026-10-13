@@ -176,6 +176,10 @@ func (s *APIV1Service) requireChallenge(ctx context.Context, scope ratelimit.Sco
 	if s.Challenge == nil {
 		return nil
 	}
+	return verifyChallenge(ctx, s.Challenge, scope)
+}
+
+func verifyChallenge(ctx context.Context, challenge ratelimit.Challenge, scope ratelimit.Scope) error {
 	token := ""
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		if values := md.Get(challengeTokenMetadataKey); len(values) > 0 {
@@ -185,7 +189,7 @@ func (s *APIV1Service) requireChallenge(ctx context.Context, scope ratelimit.Sco
 	if token == "" {
 		return newChallengeRequiredError("challenge token is required")
 	}
-	if err := s.Challenge.Verify(ctx, scope, token, clientip.FromContext(ctx)); err != nil {
+	if err := challenge.Verify(ctx, scope, token, clientip.FromContext(ctx)); err != nil {
 		slog.Info("challenge verification failed", slog.String("scope", string(scope)), slog.String("error", err.Error()))
 		return newChallengeRequiredError("challenge verification failed")
 	}

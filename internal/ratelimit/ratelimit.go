@@ -42,6 +42,8 @@ const (
 	ScopeWriteUser Scope = "write_user"
 	// ScopeArchiveUser counts memo exports and imports per user.
 	ScopeArchiveUser Scope = "archive_user"
+	// ScopeAnonymousReactionIP counts anonymous reaction attempts per client address.
+	ScopeAnonymousReactionIP Scope = "anonymous_reaction_ip"
 )
 
 // Rule is the limit for one scope: at most Limit units within Window.
@@ -64,19 +66,20 @@ func (p Policy) Rule(scope Scope) (Rule, bool) {
 // address is never throttled in ordinary use.
 func DefaultPolicy() Policy {
 	return Policy{
-		ScopeAnonymous:          {Limit: 300, Window: time.Minute},
-		ScopeAuthenticated:      {Limit: 600, Window: time.Minute},
-		ScopeSignInIP:           {Limit: 30, Window: 15 * time.Minute},
-		ScopeSignInAccount:      {Limit: 10, Window: 15 * time.Minute},
-		ScopeSignupIP:           {Limit: 10, Window: time.Hour},
-		ScopeValidateIP:         {Limit: 60, Window: time.Minute},
-		ScopePasswordResetIP:    {Limit: 10, Window: time.Hour},
-		ScopePasswordResetEmail: {Limit: 3, Window: time.Hour},
-		ScopeLinkMetadata:       {Limit: 60, Window: time.Minute},
-		ScopeUploadUser:         {Limit: 120, Window: time.Minute},
-		ScopeTranscribeUser:     {Limit: 20, Window: time.Hour},
-		ScopeWriteUser:          {Limit: 120, Window: time.Minute},
-		ScopeArchiveUser:        {Limit: 10, Window: time.Hour},
+		ScopeAnonymous:           {Limit: 300, Window: time.Minute},
+		ScopeAuthenticated:       {Limit: 600, Window: time.Minute},
+		ScopeSignInIP:            {Limit: 30, Window: 15 * time.Minute},
+		ScopeSignInAccount:       {Limit: 10, Window: 15 * time.Minute},
+		ScopeSignupIP:            {Limit: 10, Window: time.Hour},
+		ScopeValidateIP:          {Limit: 60, Window: time.Minute},
+		ScopePasswordResetIP:     {Limit: 10, Window: time.Hour},
+		ScopePasswordResetEmail:  {Limit: 3, Window: time.Hour},
+		ScopeLinkMetadata:        {Limit: 60, Window: time.Minute},
+		ScopeUploadUser:          {Limit: 120, Window: time.Minute},
+		ScopeTranscribeUser:      {Limit: 20, Window: time.Hour},
+		ScopeWriteUser:           {Limit: 120, Window: time.Minute},
+		ScopeArchiveUser:         {Limit: 10, Window: time.Hour},
+		ScopeAnonymousReactionIP: {Limit: 20, Window: time.Minute},
 	}
 }
 

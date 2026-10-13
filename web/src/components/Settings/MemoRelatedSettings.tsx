@@ -1,14 +1,19 @@
 import { create } from "@bufbuild/protobuf";
 import { isEqual, uniq } from "lodash-es";
 import { CheckIcon, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useInstance } from "@/contexts/InstanceContext";
+import { useInstanceSetting, useUpdateInstanceSetting } from "@/hooks/useInstanceQueries";
+import { handleError } from "@/lib/error";
 import {
+  InstanceAccessMode,
+  InstanceSetting_AnonymousReactionSettingSchema,
   InstanceSetting_Key,
   InstanceSetting_MemoRelatedSetting,
   InstanceSetting_MemoRelatedSettingSchema,
@@ -41,7 +46,7 @@ const parseContentLengthLimit = (value: string): number | undefined => {
 const MemoRelatedSettings = () => {
   const t = useTranslate();
   const saveInstanceSetting = useInstanceSettingUpdater();
-  const { memoRelatedSetting: originalSetting } = useInstance();
+  const { memoRelatedSetting: originalSetting, profile } = useInstance();
   const [memoRelatedSetting, setMemoRelatedSetting] = useState<InstanceSetting_MemoRelatedSetting>(originalSetting);
   const [contentLengthLimitInput, setContentLengthLimitInput] = useState(String(originalSetting.contentLengthLimit));
   const [editingReaction, setEditingReaction] = useState<string>("");
@@ -50,6 +55,44 @@ const MemoRelatedSettings = () => {
     setMemoRelatedSetting(originalSetting);
     setContentLengthLimitInput(String(originalSetting.contentLengthLimit));
   }, [originalSetting]);
+
+  const { data, isLoading, isError, refetch } = useInstanceSetting(InstanceSetting_Key.ANONYMOUS_REACTION);
+  const { mutateAsync, isPending } = useUpdateInstanceSetting();
+  const originalAnonymousSetting = useMemo(
+    () => (data?.value.case === "anonymousReactionSetting" ? data.value.value : create(InstanceSetting_AnonymousReactionSettingSchema)),
+    [data],
+  );
+  const [anonymousSetting, setAnonymousSetting] = useState(originalAnonymousSetting);
+  const [hostnames, setHostnames] = useState(originalAnonymousSetting.hostnames.join("\n"));
+  useEffect(() => {
+    setAnonymousSetting(originalAnonymousSetting);
+    setHostnames(originalAnonymousSetting.hostnames.join("\n"));
+  }, [originalAnonymousSetting]);
+
+  const updatedAnonymousSetting = create(InstanceSetting_AnonymousReactionSettingSchema, {
+    ...anonymousSetting,
+    siteKey: anonymousSetting.siteKey.trim(),
+    secretKey: anonymousSetting.secretKey.trim(),
+    hostnames: [
+      ...new Set(
+        hostnames
+          .split(/[,\n]/)
+          .map((hostname) => hostname.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ],
+  });
+  const hasSecret = Boolean(
+    updatedAnonymousSetting.secretKey ||
+      (originalAnonymousSetting.hasSecret && updatedAnonymousSetting.siteKey === originalAnonymousSetting.siteKey),
+  );
+  const incomplete =
+    updatedAnonymousSetting.enabled && (!updatedAnonymousSetting.siteKey || !hasSecret || updatedAnonymousSetting.hostnames.length === 0);
+  const anonymousChanged = !isEqual(updatedAnonymousSetting, originalAnonymousSetting);
+  const memoChanged =
+    !isEqual(memoRelatedSetting, originalSetting) || contentLengthLimitInput !== String(originalSetting.contentLengthLimit);
+  const [isSaving, setIsSaving] = useState(false);
+  const canSave = !isLoading && !isError && !isPending && !isSaving && !incomplete && (memoChanged || anonymousChanged);
 
   const updatePartialSetting = (partial: Partial<InstanceSetting_MemoRelatedSetting>) => {
     const newInstanceMemoRelatedSetting = create(InstanceSetting_MemoRelatedSettingSchema, {
@@ -70,6 +113,7 @@ const MemoRelatedSettings = () => {
   };
 
   const handleUpdateSetting = async () => {
+    if (!canSave) return;
     const contentLengthLimit = parseContentLengthLimit(contentLengthLimitInput);
     if (contentLengthLimit === undefined) {
       toast.error(
@@ -91,17 +135,34 @@ const MemoRelatedSettings = () => {
       contentLengthLimit,
     });
 
-    await saveInstanceSetting({
-      key: InstanceSetting_Key.MEMO_RELATED,
-      setting: create(InstanceSettingSchema, {
-        name: buildInstanceSettingName(InstanceSetting_Key.MEMO_RELATED),
-        value: {
-          case: "memoRelatedSetting",
-          value: updatedMemoRelatedSetting,
-        },
-      }),
-      errorContext: "Update memo-related settings",
-    });
+    setIsSaving(true);
+    try {
+      if (memoChanged) {
+        const saved = await saveInstanceSetting({
+          key: InstanceSetting_Key.MEMO_RELATED,
+          setting: create(InstanceSettingSchema, {
+            name: buildInstanceSettingName(InstanceSetting_Key.MEMO_RELATED),
+            value: { case: "memoRelatedSetting", value: updatedMemoRelatedSetting },
+          }),
+          errorContext: "Update memo-related settings",
+          showSuccessToast: !anonymousChanged,
+        });
+        if (!saved) return;
+      }
+      if (anonymousChanged) {
+        await mutateAsync(
+          create(InstanceSettingSchema, {
+            name: buildInstanceSettingName(InstanceSetting_Key.ANONYMOUS_REACTION),
+            value: { case: "anonymousReactionSetting", value: updatedAnonymousSetting },
+          }),
+        );
+        toast.success(t("message.update-succeed"));
+      }
+    } catch (error: unknown) {
+      handleError(error, toast.error, { fallbackMessage: t("setting.anonymous-reaction.save-error") });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -181,13 +242,112 @@ const MemoRelatedSettings = () => {
             ))}
           </div>
         </SettingPanel>
+        {isLoading && (
+          <p className="text-sm text-muted-foreground" role="status">
+            {t("setting.anonymous-reaction.loading")}
+          </p>
+        )}
+        {isError && (
+          <div className="flex items-center gap-3" role="alert">
+            <p className="text-sm text-destructive">{t("setting.anonymous-reaction.load-error")}</p>
+            <Button variant="outline" onClick={() => void refetch()}>
+              {t("setting.anonymous-reaction.retry")}
+            </Button>
+          </div>
+        )}
+        {!isLoading && !isError && (
+          <>
+            <SettingList>
+              <SettingListItem label={<label htmlFor="anonymous-reaction-enabled">{t("setting.anonymous-reaction.enabled")}</label>}>
+                <Switch
+                  id="anonymous-reaction-enabled"
+                  checked={anonymousSetting.enabled}
+                  disabled={isPending}
+                  onCheckedChange={(enabled) => setAnonymousSetting({ ...anonymousSetting, enabled })}
+                />
+              </SettingListItem>
+              {anonymousSetting.enabled && (
+                <div className="flex flex-col gap-3 bg-muted/10 px-3 py-4 sm:ps-6">
+                  {profile.accessMode !== InstanceAccessMode.PUBLIC && (
+                    <p className="text-sm text-muted-foreground">
+                      {t("setting.anonymous-reaction.public-required")}{" "}
+                      <a className="text-primary underline" href="#system">
+                        {t("setting.system.label")}
+                      </a>
+                    </p>
+                  )}
+                  <SettingGroup
+                    title="Cloudflare Turnstile"
+                    actions={
+                      <a
+                        className="text-sm text-primary underline"
+                        href="https://dash.cloudflare.com/?to=/:account/turnstile"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {t("setting.anonymous-reaction.open-dashboard")}
+                      </a>
+                    }
+                  >
+                    <SettingList>
+                      <SettingListItem vertical label={<label htmlFor="anonymous-reaction-site-key">Site Key</label>}>
+                        <Input
+                          id="anonymous-reaction-site-key"
+                          value={anonymousSetting.siteKey}
+                          disabled={isPending}
+                          maxLength={256}
+                          onChange={(event) => setAnonymousSetting({ ...anonymousSetting, siteKey: event.target.value })}
+                        />
+                      </SettingListItem>
+                      <SettingListItem
+                        vertical
+                        label={<label htmlFor="anonymous-reaction-secret-key">Secret Key</label>}
+                        description={
+                          originalAnonymousSetting.hasSecret
+                            ? t("setting.anonymous-reaction.secret-configured")
+                            : t("setting.anonymous-reaction.secret-description")
+                        }
+                      >
+                        <Input
+                          id="anonymous-reaction-secret-key"
+                          type="password"
+                          autoComplete="new-password"
+                          value={anonymousSetting.secretKey}
+                          disabled={isPending}
+                          maxLength={256}
+                          onChange={(event) => setAnonymousSetting({ ...anonymousSetting, secretKey: event.target.value })}
+                        />
+                      </SettingListItem>
+                      <SettingListItem
+                        vertical
+                        label={<label htmlFor="anonymous-reaction-hostnames">{t("setting.anonymous-reaction.hostnames")}</label>}
+                        description={t("setting.anonymous-reaction.hostnames-description")}
+                      >
+                        <Textarea
+                          id="anonymous-reaction-hostnames"
+                          value={hostnames}
+                          disabled={isPending}
+                          placeholder="memos.example.com"
+                          rows={3}
+                          onChange={(event) => setHostnames(event.target.value)}
+                        />
+                      </SettingListItem>
+                    </SettingList>
+                    {incomplete && (
+                      <p className="text-xs text-muted-foreground" role="status">
+                        {t("setting.anonymous-reaction.incomplete")}
+                      </p>
+                    )}
+                  </SettingGroup>
+                </div>
+              )}
+            </SettingList>
+          </>
+        )}
       </SettingGroup>
 
       <div className="w-full flex justify-end">
-        <Button
-          disabled={isEqual(memoRelatedSetting, originalSetting) && contentLengthLimitInput === String(originalSetting.contentLengthLimit)}
-          onClick={handleUpdateSetting}
-        >
+        <Button disabled={!canSave} onClick={handleUpdateSetting}>
           {t("common.save")}
         </Button>
       </div>

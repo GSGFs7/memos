@@ -67,6 +67,8 @@ func init() {
 	rootCmd.Flags().StringSlice("webhook-private-network-allowlist", nil, "private webhook destinations to allow (exact hostname, IP, or CIDR)")
 	rootCmd.Flags().String("log-level", "info", "log verbosity level (debug, info, warn, error)")
 	rootCmd.Flags().Bool("rate-limit", true, "enable request rate limiting")
+	rootCmd.Flags().String("anonymous-reaction-site-key", "", "Turnstile public site key for anonymous reactions")
+	rootCmd.Flags().StringSlice("anonymous-reaction-hostnames", nil, "exact frontend hostnames accepted for anonymous reaction verification")
 	rootCmd.Flags().StringSlice("trusted-proxies", []string{"private"}, "proxies whose forwarding headers identify the client: CIDRs, IPs, \"private\" (default; the loopback and private ranges), or \"none\" when the instance is reached without a header-rewriting proxy")
 
 	if err := rootCmd.Flags().MarkDeprecated("allow-private-webhooks", "use --webhook-private-network-allowlist to allow only required destinations"); err != nil {
@@ -85,6 +87,8 @@ func init() {
 		"webhook-private-network-allowlist",
 		"log-level",
 		"rate-limit",
+		"anonymous-reaction-site-key",
+		"anonymous-reaction-hostnames",
 		"trusted-proxies",
 	} {
 		if err := viper.BindPFlag(key, rootCmd.Flags().Lookup(key)); err != nil {
@@ -109,18 +113,21 @@ func init() {
 
 func runServer() error {
 	instanceProfile := &profile.Profile{
-		Demo:           viper.GetBool("demo"),
-		Addr:           viper.GetString("addr"),
-		Port:           viper.GetInt("port"),
-		UNIXSock:       viper.GetString("unix-sock"),
-		Data:           viper.GetString("data"),
-		Driver:         viper.GetString("driver"),
-		DSN:            viper.GetString("dsn"),
-		InstanceURL:    viper.GetString("instance-url"),
-		RateLimit:      viper.GetBool("rate-limit"),
-		TrustedProxies: viper.GetStringSlice("trusted-proxies"),
-		Version:        version.GetCurrentVersion(),
-		Commit:         version.Commit,
+		Demo:                       viper.GetBool("demo"),
+		Addr:                       viper.GetString("addr"),
+		Port:                       viper.GetInt("port"),
+		UNIXSock:                   viper.GetString("unix-sock"),
+		Data:                       viper.GetString("data"),
+		Driver:                     viper.GetString("driver"),
+		DSN:                        viper.GetString("dsn"),
+		InstanceURL:                viper.GetString("instance-url"),
+		RateLimit:                  viper.GetBool("rate-limit"),
+		AnonymousReactionSiteKey:   viper.GetString("anonymous-reaction-site-key"),
+		AnonymousReactionSecret:    viper.GetString("anonymous-reaction-secret"),
+		AnonymousReactionHostnames: anonymousReactionHostnames(),
+		TrustedProxies:             viper.GetStringSlice("trusted-proxies"),
+		Version:                    version.GetCurrentVersion(),
+		Commit:                     version.Commit,
 	}
 
 	allowPrivateWebhooks := viper.GetBool("allow-private-webhooks")
@@ -180,6 +187,16 @@ func runServer() error {
 	<-signals
 	s.Shutdown(context.Background())
 	return nil
+}
+
+func anonymousReactionHostnames() []string {
+	var hostnames []string
+	for _, value := range viper.GetStringSlice("anonymous-reaction-hostnames") {
+		for hostname := range strings.SplitSeq(value, ",") {
+			hostnames = append(hostnames, strings.TrimSpace(hostname))
+		}
+	}
+	return hostnames
 }
 
 func privateWebhookAllowlist() []string {

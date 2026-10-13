@@ -68,6 +68,9 @@ const (
 	// MemoServiceUpsertMemoReactionProcedure is the fully-qualified name of the MemoService's
 	// UpsertMemoReaction RPC.
 	MemoServiceUpsertMemoReactionProcedure = "/memos.api.v1.MemoService/UpsertMemoReaction"
+	// MemoServiceAddAnonymousMemoReactionProcedure is the fully-qualified name of the MemoService's
+	// AddAnonymousMemoReaction RPC.
+	MemoServiceAddAnonymousMemoReactionProcedure = "/memos.api.v1.MemoService/AddAnonymousMemoReaction"
 	// MemoServiceDeleteMemoReactionProcedure is the fully-qualified name of the MemoService's
 	// DeleteMemoReaction RPC.
 	MemoServiceDeleteMemoReactionProcedure = "/memos.api.v1.MemoService/DeleteMemoReaction"
@@ -129,6 +132,8 @@ type MemoServiceClient interface {
 	ListMemoReactions(context.Context, *connect.Request[v1.ListMemoReactionsRequest]) (*connect.Response[v1.ListMemoReactionsResponse], error)
 	// UpsertMemoReaction adds or updates the authenticated user's reaction on a memo.
 	UpsertMemoReaction(context.Context, *connect.Request[v1.UpsertMemoReactionRequest]) (*connect.Response[v1.Reaction], error)
+	// AddAnonymousMemoReaction increments an anonymous reaction after human verification.
+	AddAnonymousMemoReaction(context.Context, *connect.Request[v1.AddAnonymousMemoReactionRequest]) (*connect.Response[v1.Reaction], error)
 	// DeleteMemoReaction deletes a reaction for a memo.
 	DeleteMemoReaction(context.Context, *connect.Request[v1.DeleteMemoReactionRequest]) (*connect.Response[emptypb.Empty], error)
 	// CreateMemoShare creates a share link for a memo. Requires the memo creator or an instance administrator.
@@ -235,6 +240,12 @@ func NewMemoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(memoServiceMethods.ByName("UpsertMemoReaction")),
 			connect.WithClientOptions(opts...),
 		),
+		addAnonymousMemoReaction: connect.NewClient[v1.AddAnonymousMemoReactionRequest, v1.Reaction](
+			httpClient,
+			baseURL+MemoServiceAddAnonymousMemoReactionProcedure,
+			connect.WithSchema(memoServiceMethods.ByName("AddAnonymousMemoReaction")),
+			connect.WithClientOptions(opts...),
+		),
 		deleteMemoReaction: connect.NewClient[v1.DeleteMemoReactionRequest, emptypb.Empty](
 			httpClient,
 			baseURL+MemoServiceDeleteMemoReactionProcedure,
@@ -282,26 +293,27 @@ func NewMemoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // memoServiceClient implements MemoServiceClient.
 type memoServiceClient struct {
-	createMemo           *connect.Client[v1.CreateMemoRequest, v1.Memo]
-	listMemos            *connect.Client[v1.ListMemosRequest, v1.ListMemosResponse]
-	getMemo              *connect.Client[v1.GetMemoRequest, v1.Memo]
-	updateMemo           *connect.Client[v1.UpdateMemoRequest, v1.Memo]
-	deleteMemo           *connect.Client[v1.DeleteMemoRequest, emptypb.Empty]
-	setMemoAttachments   *connect.Client[v1.SetMemoAttachmentsRequest, emptypb.Empty]
-	listMemoAttachments  *connect.Client[v1.ListMemoAttachmentsRequest, v1.ListMemoAttachmentsResponse]
-	setMemoRelations     *connect.Client[v1.SetMemoRelationsRequest, emptypb.Empty]
-	listMemoRelations    *connect.Client[v1.ListMemoRelationsRequest, v1.ListMemoRelationsResponse]
-	createMemoComment    *connect.Client[v1.CreateMemoCommentRequest, v1.Memo]
-	listMemoComments     *connect.Client[v1.ListMemoCommentsRequest, v1.ListMemoCommentsResponse]
-	listMemoReactions    *connect.Client[v1.ListMemoReactionsRequest, v1.ListMemoReactionsResponse]
-	upsertMemoReaction   *connect.Client[v1.UpsertMemoReactionRequest, v1.Reaction]
-	deleteMemoReaction   *connect.Client[v1.DeleteMemoReactionRequest, emptypb.Empty]
-	createMemoShare      *connect.Client[v1.CreateMemoShareRequest, v1.MemoShare]
-	listMemoShares       *connect.Client[v1.ListMemoSharesRequest, v1.ListMemoSharesResponse]
-	deleteMemoShare      *connect.Client[v1.DeleteMemoShareRequest, emptypb.Empty]
-	getSharedMemo        *connect.Client[v1.GetSharedMemoRequest, v1.Memo]
-	getLinkMetadata      *connect.Client[v1.GetLinkMetadataRequest, v1.LinkMetadata]
-	batchGetLinkMetadata *connect.Client[v1.BatchGetLinkMetadataRequest, v1.BatchGetLinkMetadataResponse]
+	createMemo               *connect.Client[v1.CreateMemoRequest, v1.Memo]
+	listMemos                *connect.Client[v1.ListMemosRequest, v1.ListMemosResponse]
+	getMemo                  *connect.Client[v1.GetMemoRequest, v1.Memo]
+	updateMemo               *connect.Client[v1.UpdateMemoRequest, v1.Memo]
+	deleteMemo               *connect.Client[v1.DeleteMemoRequest, emptypb.Empty]
+	setMemoAttachments       *connect.Client[v1.SetMemoAttachmentsRequest, emptypb.Empty]
+	listMemoAttachments      *connect.Client[v1.ListMemoAttachmentsRequest, v1.ListMemoAttachmentsResponse]
+	setMemoRelations         *connect.Client[v1.SetMemoRelationsRequest, emptypb.Empty]
+	listMemoRelations        *connect.Client[v1.ListMemoRelationsRequest, v1.ListMemoRelationsResponse]
+	createMemoComment        *connect.Client[v1.CreateMemoCommentRequest, v1.Memo]
+	listMemoComments         *connect.Client[v1.ListMemoCommentsRequest, v1.ListMemoCommentsResponse]
+	listMemoReactions        *connect.Client[v1.ListMemoReactionsRequest, v1.ListMemoReactionsResponse]
+	upsertMemoReaction       *connect.Client[v1.UpsertMemoReactionRequest, v1.Reaction]
+	addAnonymousMemoReaction *connect.Client[v1.AddAnonymousMemoReactionRequest, v1.Reaction]
+	deleteMemoReaction       *connect.Client[v1.DeleteMemoReactionRequest, emptypb.Empty]
+	createMemoShare          *connect.Client[v1.CreateMemoShareRequest, v1.MemoShare]
+	listMemoShares           *connect.Client[v1.ListMemoSharesRequest, v1.ListMemoSharesResponse]
+	deleteMemoShare          *connect.Client[v1.DeleteMemoShareRequest, emptypb.Empty]
+	getSharedMemo            *connect.Client[v1.GetSharedMemoRequest, v1.Memo]
+	getLinkMetadata          *connect.Client[v1.GetLinkMetadataRequest, v1.LinkMetadata]
+	batchGetLinkMetadata     *connect.Client[v1.BatchGetLinkMetadataRequest, v1.BatchGetLinkMetadataResponse]
 }
 
 // CreateMemo calls memos.api.v1.MemoService.CreateMemo.
@@ -367,6 +379,11 @@ func (c *memoServiceClient) ListMemoReactions(ctx context.Context, req *connect.
 // UpsertMemoReaction calls memos.api.v1.MemoService.UpsertMemoReaction.
 func (c *memoServiceClient) UpsertMemoReaction(ctx context.Context, req *connect.Request[v1.UpsertMemoReactionRequest]) (*connect.Response[v1.Reaction], error) {
 	return c.upsertMemoReaction.CallUnary(ctx, req)
+}
+
+// AddAnonymousMemoReaction calls memos.api.v1.MemoService.AddAnonymousMemoReaction.
+func (c *memoServiceClient) AddAnonymousMemoReaction(ctx context.Context, req *connect.Request[v1.AddAnonymousMemoReactionRequest]) (*connect.Response[v1.Reaction], error) {
+	return c.addAnonymousMemoReaction.CallUnary(ctx, req)
 }
 
 // DeleteMemoReaction calls memos.api.v1.MemoService.DeleteMemoReaction.
@@ -442,6 +459,8 @@ type MemoServiceHandler interface {
 	ListMemoReactions(context.Context, *connect.Request[v1.ListMemoReactionsRequest]) (*connect.Response[v1.ListMemoReactionsResponse], error)
 	// UpsertMemoReaction adds or updates the authenticated user's reaction on a memo.
 	UpsertMemoReaction(context.Context, *connect.Request[v1.UpsertMemoReactionRequest]) (*connect.Response[v1.Reaction], error)
+	// AddAnonymousMemoReaction increments an anonymous reaction after human verification.
+	AddAnonymousMemoReaction(context.Context, *connect.Request[v1.AddAnonymousMemoReactionRequest]) (*connect.Response[v1.Reaction], error)
 	// DeleteMemoReaction deletes a reaction for a memo.
 	DeleteMemoReaction(context.Context, *connect.Request[v1.DeleteMemoReactionRequest]) (*connect.Response[emptypb.Empty], error)
 	// CreateMemoShare creates a share link for a memo. Requires the memo creator or an instance administrator.
@@ -544,6 +563,12 @@ func NewMemoServiceHandler(svc MemoServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(memoServiceMethods.ByName("UpsertMemoReaction")),
 		connect.WithHandlerOptions(opts...),
 	)
+	memoServiceAddAnonymousMemoReactionHandler := connect.NewUnaryHandler(
+		MemoServiceAddAnonymousMemoReactionProcedure,
+		svc.AddAnonymousMemoReaction,
+		connect.WithSchema(memoServiceMethods.ByName("AddAnonymousMemoReaction")),
+		connect.WithHandlerOptions(opts...),
+	)
 	memoServiceDeleteMemoReactionHandler := connect.NewUnaryHandler(
 		MemoServiceDeleteMemoReactionProcedure,
 		svc.DeleteMemoReaction,
@@ -614,6 +639,8 @@ func NewMemoServiceHandler(svc MemoServiceHandler, opts ...connect.HandlerOption
 			memoServiceListMemoReactionsHandler.ServeHTTP(w, r)
 		case MemoServiceUpsertMemoReactionProcedure:
 			memoServiceUpsertMemoReactionHandler.ServeHTTP(w, r)
+		case MemoServiceAddAnonymousMemoReactionProcedure:
+			memoServiceAddAnonymousMemoReactionHandler.ServeHTTP(w, r)
 		case MemoServiceDeleteMemoReactionProcedure:
 			memoServiceDeleteMemoReactionHandler.ServeHTTP(w, r)
 		case MemoServiceCreateMemoShareProcedure:
@@ -687,6 +714,10 @@ func (UnimplementedMemoServiceHandler) ListMemoReactions(context.Context, *conne
 
 func (UnimplementedMemoServiceHandler) UpsertMemoReaction(context.Context, *connect.Request[v1.UpsertMemoReactionRequest]) (*connect.Response[v1.Reaction], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("memos.api.v1.MemoService.UpsertMemoReaction is not implemented"))
+}
+
+func (UnimplementedMemoServiceHandler) AddAnonymousMemoReaction(context.Context, *connect.Request[v1.AddAnonymousMemoReactionRequest]) (*connect.Response[v1.Reaction], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("memos.api.v1.MemoService.AddAnonymousMemoReaction is not implemented"))
 }
 
 func (UnimplementedMemoServiceHandler) DeleteMemoReaction(context.Context, *connect.Request[v1.DeleteMemoReactionRequest]) (*connect.Response[emptypb.Empty], error) {

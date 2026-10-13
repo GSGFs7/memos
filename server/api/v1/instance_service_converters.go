@@ -36,6 +36,13 @@ func convertInstanceSettingFromStore(setting *storepb.InstanceSetting) *v1pb.Ins
 		instanceSetting.Value = &v1pb.InstanceSetting_AiSetting{
 			AiSetting: convertInstanceAISettingFromStore(setting.GetAiSetting()),
 		}
+	case *storepb.InstanceSetting_AnonymousReactionSetting:
+		stored := setting.GetAnonymousReactionSetting()
+		instanceSetting.Value = &v1pb.InstanceSetting_AnonymousReactionSetting_{
+			AnonymousReactionSetting: &v1pb.InstanceSetting_AnonymousReactionSetting{
+				Enabled: stored.Enabled, SiteKey: stored.SiteKey, Hostnames: append([]string(nil), stored.Hostnames...), HasSecret: stored.SecretKey != "",
+			},
+		}
 	case *storepb.InstanceSetting_AccessSetting:
 		instanceSetting.Value = &v1pb.InstanceSetting_AccessSetting_{
 			AccessSetting: convertInstanceAccessSettingFromStore(setting.GetAccessSetting()),
@@ -78,6 +85,16 @@ func convertInstanceSettingToStore(setting *v1pb.InstanceSetting) *storepb.Insta
 	case storepb.InstanceSettingKey_AI:
 		instanceSetting.Value = &storepb.InstanceSetting_AiSetting{
 			AiSetting: convertInstanceAISettingToStore(setting.GetAiSetting()),
+		}
+	case storepb.InstanceSettingKey_ANONYMOUS_REACTION:
+		if input := setting.GetAnonymousReactionSetting(); input != nil {
+			instanceSetting.Value = &storepb.InstanceSetting_AnonymousReactionSetting{
+				AnonymousReactionSetting: &storepb.InstanceAnonymousReactionSetting{
+					Enabled: input.Enabled, SiteKey: input.SiteKey, SecretKey: input.SecretKey, Hostnames: append([]string(nil), input.Hostnames...),
+				},
+			}
+		} else {
+			instanceSetting.Value = nil
 		}
 	case storepb.InstanceSettingKey_ACCESS:
 		instanceSetting.Value = &storepb.InstanceSetting_AccessSetting{

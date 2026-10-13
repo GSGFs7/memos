@@ -18,6 +18,7 @@ import (
 	"github.com/usememos/memos/internal/linkmeta"
 	"github.com/usememos/memos/internal/profile"
 	"github.com/usememos/memos/internal/ratelimit"
+	"github.com/usememos/memos/internal/turnstile"
 	"github.com/usememos/memos/markdown"
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
 	"github.com/usememos/memos/server/auth"
@@ -77,6 +78,8 @@ type APIV1Service struct {
 	// Challenge verifies proof-of-humanity tokens on signup and password
 	// sign-in; nil means no challenge is configured.
 	Challenge ratelimit.Challenge
+	// AnonymousReactionChallenge protects anonymous reactions independently of sign-in.
+	AnonymousReactionChallenge ratelimit.Challenge
 	// SignupPolicy decides whether a self-service registration may proceed;
 	// nil allows every registration.
 	SignupPolicy ratelimit.SignupPolicy
@@ -109,6 +112,9 @@ func NewAPIV1Service(secret string, profile *profile.Profile, store *store.Store
 		RateLimiter:              newProfileRateLimiter(profile),
 		thumbnailSemaphore:       semaphore.NewWeighted(3), // Limit to 3 concurrent thumbnail generations
 		imageProcessingSemaphore: semaphore.NewWeighted(2),
+	}
+	if profile.AnonymousReactionSiteKey != "" {
+		service.AnonymousReactionChallenge = &anonymousReactionVerifier{client: turnstile.New(profile.AnonymousReactionSiteKey, profile.AnonymousReactionSecret, profile.AnonymousReactionHostnames, "anonymous_reaction")}
 	}
 	service.linkMetadataFetcher = linkmeta.NewHTMLMetaFetcher()
 	return service

@@ -24,6 +24,8 @@ enum InstanceSettingKey {
   AI = 7;
   // ACCESS is the key for instance access policy settings.
   ACCESS = 8;
+  // ANONYMOUS_REACTION configures anonymous reactions and human verification.
+  ANONYMOUS_REACTION = 9;
 }
 
 message InstanceSetting {
@@ -37,6 +39,7 @@ message InstanceSetting {
     InstanceNotificationSetting notification_setting = 7;
     InstanceAISetting ai_setting = 8;
     InstanceAccessSetting access_setting = 9;
+    InstanceAnonymousReactionSetting anonymous_reaction_setting = 10;
   }
 }
 
@@ -244,4 +247,12 @@ enum InstanceAccessMode {
 
 message InstanceAccessSetting {
   InstanceAccessMode access_mode = 1;
+}
+
+// InstanceAnonymousReactionSetting configures anonymous reactions independently of authentication.
+message InstanceAnonymousReactionSetting {
+  bool enabled = 1;
+  string site_key = 2;
+  string secret_key = 3;
+  repeated string hostnames = 4;
 }

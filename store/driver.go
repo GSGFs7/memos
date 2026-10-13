@@ -89,6 +89,7 @@ type Driver interface {
 
 	// Reaction model related methods.
 	UpsertReaction(ctx context.Context, create *Reaction) (*Reaction, error)
+	AddAnonymousReaction(ctx context.Context, memoID int32, reactionType string) (*Reaction, error)
 	ListReactions(ctx context.Context, find *FindReaction) ([]*Reaction, error)
 	GetReaction(ctx context.Context, find *FindReaction) (*Reaction, error)
 	DeleteReaction(ctx context.Context, delete *DeleteReaction) error

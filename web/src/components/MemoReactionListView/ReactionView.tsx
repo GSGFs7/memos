@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { State } from "@/types/proto/api/v1/common_pb";
 import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import type { User } from "@/types/proto/api/v1/user_service_pb";
+import { useTranslate } from "@/utils/i18n";
 import { formatReactionTooltip, useReactionActions } from "./hooks";
 
 /**
@@ -29,48 +30,56 @@ interface Props {
   memo: Memo;
   reactionType: string;
   users: User[];
+  anonymousCount?: number;
 }
 
 const ReactionView = (props: Props) => {
-  const { memo, reactionType, users } = props;
+  const { memo, reactionType, users, anonymousCount = 0 } = props;
+  const t = useTranslate();
   const currentUser = useCurrentUser();
-  const hasReaction = users.some((user) => currentUser && user.username === currentUser.username);
+
   const readonly = memo.state === State.ARCHIVED;
 
-  const { handleReactionClick } = useReactionActions({ memo });
+  const { hasReacted, handleReactionClick, canReact, pending, challengeDialog } = useReactionActions({ memo });
+  const hasReaction = hasReacted(reactionType);
 
-  const isClickable = Boolean(currentUser) && !readonly;
+  const isClickable = canReact && !readonly;
   const label = (
     <>
       <span className="text-sm leading-none">{reactionType}</span>
-      <span className="text-2xs tabular-nums text-muted-foreground/60">{users.length}</span>
+      <span className="text-2xs tabular-nums text-muted-foreground/60">{users.length + anonymousCount}</span>
     </>
   );
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            isClickable ? (
-              <button
-                type="button"
-                className={REACTION_PILL_INTERACTIVE_CLASSES}
-                aria-pressed={hasReaction}
-                onClick={() => handleReactionClick(reactionType)}
-              />
-            ) : (
-              <span className={REACTION_PILL_CLASSES} />
-            )
-          }
-        >
-          {label}
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{formatReactionTooltip(users, reactionType)}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              isClickable ? (
+                <button
+                  type="button"
+                  className={REACTION_PILL_INTERACTIVE_CLASSES}
+                  aria-pressed={hasReaction}
+                  disabled={pending || (!currentUser && hasReaction)}
+                  onClick={() => handleReactionClick(reactionType)}
+                />
+              ) : (
+                <span className={REACTION_PILL_CLASSES} />
+              )
+            }
+          >
+            {label}
+          </TooltipTrigger>
+          <TooltipContent>
+            {users.length > 0 && <p>{formatReactionTooltip(users, reactionType)}</p>}
+            {anonymousCount > 0 && <p>{t("memo.anonymous-reaction-count", { count: anonymousCount })}</p>}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      {challengeDialog}
+    </>
   );
 };
 

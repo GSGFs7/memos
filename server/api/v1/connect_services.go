@@ -764,3 +764,11 @@ func (s *ConnectServiceHandler) DeleteIdentityProvider(ctx context.Context, req 
 	}
 	return connect.NewResponse(resp), nil
 }
+
+func (s *ConnectServiceHandler) AddAnonymousMemoReaction(ctx context.Context, req *connect.Request[v1pb.AddAnonymousMemoReactionRequest]) (*connect.Response[v1pb.Reaction], error) {
+	resp, err := s.APIV1Service.AddAnonymousMemoReaction(ctx, req.Msg)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(resp), nil
+}

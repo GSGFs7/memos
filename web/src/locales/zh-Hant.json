@@ -395,7 +395,10 @@
     "connections": "關聯",
     "go-to": "轉到 {{source}}",
     "on-this-memo": "在此備忘錄中",
-    "parent-memo": "原始備忘錄"
+    "parent-memo": "原始備忘錄",
+    "anonymous-reaction-title": "匿名表態",
+    "anonymous-reaction-count": "{{count}} 次匿名表態",
+    "anonymous-reaction-error": "新增失敗，請重新驗證後再試。"
   },
   "message": {
     "archived-successfully": "封存成功",
@@ -937,6 +940,20 @@
       "review-exported": "匯出者",
       "review-memos": "檔案中的備忘錄",
       "review-new": "將建立"
+    },
+    "anonymous-reaction": {
+      "enabled": "啟用匿名表情",
+      "public-required": "匿名互動需要實例允許公開存取，請前往",
+      "open-dashboard": "開啟 Cloudflare 控制台",
+      "secret-configured": "已儲存金鑰。留空保留現有金鑰，輸入新金鑰可替換。",
+      "secret-description": "僅儲存在伺服器端，不會傳回瀏覽器。",
+      "hostnames": "允許的網域",
+      "hostnames-description": "每行一個網域，不含 https://、路徑或連接埠。應與 Cloudflare 中設定的網域一致。",
+      "incomplete": "啟用前請填寫 Site Key、Secret Key 與至少一個網域。",
+      "loading": "正在載入設定…",
+      "load-error": "載入設定失敗。",
+      "save-error": "儲存設定失敗。",
+      "retry": "重試"
     }
   },
   "space": {

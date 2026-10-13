@@ -30,14 +30,15 @@ var PublicMethods = map[string]struct{}{
 	"/memos.api.v1.IdentityProviderService/ListIdentityProviders": {},
 
 	// Memo Service - public memos (visibility filtering done in service layer)
-	"/memos.api.v1.MemoService/GetMemo":              {},
-	"/memos.api.v1.MemoService/ListMemos":            {},
-	"/memos.api.v1.MemoService/ListMemoComments":     {},
-	"/memos.api.v1.MemoService/ListMemoAttachments":  {},
-	"/memos.api.v1.MemoService/ListMemoReactions":    {},
-	"/memos.api.v1.MemoService/ListMemoRelations":    {},
-	"/memos.api.v1.MemoService/GetLinkMetadata":      {},
-	"/memos.api.v1.MemoService/BatchGetLinkMetadata": {},
+	"/memos.api.v1.MemoService/GetMemo":                  {},
+	"/memos.api.v1.MemoService/ListMemos":                {},
+	"/memos.api.v1.MemoService/ListMemoComments":         {},
+	"/memos.api.v1.MemoService/ListMemoAttachments":      {},
+	"/memos.api.v1.MemoService/ListMemoReactions":        {},
+	"/memos.api.v1.MemoService/AddAnonymousMemoReaction": {},
+	"/memos.api.v1.MemoService/ListMemoRelations":        {},
+	"/memos.api.v1.MemoService/GetLinkMetadata":          {},
+	"/memos.api.v1.MemoService/BatchGetLinkMetadata":     {},
 
 	// Attachment metadata follows the visibility of its linked memo.
 	"/memos.api.v1.AttachmentService/GetAttachment": {},

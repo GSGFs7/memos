@@ -83,7 +83,8 @@ func (d *DB) ListReactions(ctx context.Context, find *store.FindReaction) ([]*st
 			created_ts,
 			creator_id,
 			memo_id,
-			reaction_type
+			reaction_type,
+			anonymous_count
 		FROM reaction
 		WHERE `+strings.Join(where, " AND ")+`
 		ORDER BY id ASC`,
@@ -103,6 +104,7 @@ func (d *DB) ListReactions(ctx context.Context, find *store.FindReaction) ([]*st
 			&reaction.CreatorID,
 			&reaction.MemoID,
 			&reaction.ReactionType,
+			&reaction.AnonymousCount,
 		); err != nil {
 			return nil, err
 		}
@@ -184,4 +186,19 @@ func (d *DB) deleteReactionAsCreator(ctx context.Context, delete *store.DeleteRe
 		return errors.Wrap(err, "failed to commit authorized reaction delete transaction")
 	}
 	return nil
+}
+
+func (d *DB) AddAnonymousReaction(ctx context.Context, memoID int32, reactionType string) (*store.Reaction, error) {
+	reaction := &store.Reaction{MemoID: memoID, ReactionType: reactionType}
+	if err := d.db.QueryRowContext(ctx, `INSERT INTO reaction (creator_id, memo_id, reaction_type, anonymous_count)
+ SELECT 0, memo.id, ?, 1 FROM memo
+ WHERE memo.id = ? AND memo.visibility = 'PUBLIC' AND memo.row_status = 'NORMAL' AND memo.space_id IS NULL
+ ON CONFLICT (creator_id, memo_id, reaction_type) DO UPDATE SET anonymous_count = reaction.anonymous_count + 1
+ RETURNING id, created_ts, anonymous_count`, reactionType, memoID).Scan(&reaction.ID, &reaction.CreatedTs, &reaction.AnonymousCount); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, store.ErrReactionPermissionDenied
+		}
+		return nil, errors.Wrap(err, "failed to increment anonymous reaction")
+	}
+	return reaction, nil
 }

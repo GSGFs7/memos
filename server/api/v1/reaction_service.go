@@ -4,14 +4,17 @@ import (
 	"context"
 	stderrors "errors"
 	"log/slog"
+	"slices"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/usememos/memos/core/access"
+	"github.com/usememos/memos/internal/clientip"
 	"github.com/usememos/memos/internal/ratelimit"
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
+	storepb "github.com/usememos/memos/proto/gen/store"
 	"github.com/usememos/memos/store"
 )
 
@@ -182,4 +185,61 @@ func (s *APIV1Service) convertReactionFromStore(ctx context.Context, reaction *s
 		return nil, status.Errorf(codes.NotFound, "reaction creator not found")
 	}
 	return reactionMessage, nil
+}
+
+// AddAnonymousMemoReaction records one verified, anonymous addition without an identity.
+func (s *APIV1Service) AddAnonymousMemoReaction(ctx context.Context, request *v1pb.AddAnonymousMemoReactionRequest) (*v1pb.Reaction, error) {
+	challenge, err := s.resolveAnonymousReactionChallenge(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to get anonymous reaction configuration")
+	}
+	if challenge == nil {
+		return nil, status.Error(codes.FailedPrecondition, "anonymous reactions are disabled")
+	}
+	if err := s.throttleAndCharge(ratelimit.ScopeAnonymousReactionIP, clientip.FromContext(ctx), 1); err != nil {
+		return nil, err
+	}
+	memoUID, err := ExtractMemoUIDFromName(request.Name)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid memo name")
+	}
+	setting, err := s.Store.GetInstanceMemoRelatedSetting(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to get reaction settings")
+	}
+	if len(request.ReactionType) > 256 || !slices.Contains(setting.Reactions, request.ReactionType) {
+		return nil, status.Error(codes.InvalidArgument, "invalid reaction type")
+	}
+	memo, err := s.Store.GetMemo(ctx, &store.FindMemo{UID: &memoUID})
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to get memo")
+	}
+	if memo == nil {
+		return nil, status.Error(codes.NotFound, "memo not found")
+	}
+	// Resolve access as an anonymous reader even if the request has a signed-in identity.
+	accessSetting, err := s.Store.GetInstanceAccessSetting(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to get instance access")
+	}
+	facts, err := access.ResolveMemoReadContext(ctx, s.Store, memo, nil, accessSetting.AccessMode == storepb.InstanceAccessMode_INSTANCE_ACCESS_MODE_PUBLIC, nil)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to check memo access")
+	}
+	if !access.CheckMemoReadContext(facts).Allowed() || memo.RowStatus != store.Normal || memo.Visibility != store.Public || memo.SpaceID != nil {
+		return nil, status.Error(codes.PermissionDenied, "memo does not allow anonymous reactions")
+	}
+	if err := verifyChallenge(ctx, challenge, ratelimit.ScopeAnonymousReactionIP); err != nil {
+		return nil, err
+	}
+	reaction, err := s.Store.AddAnonymousReaction(ctx, memo.ID, request.ReactionType)
+	if err != nil {
+		return nil, mapReactionMutationError(err, "failed to add anonymous reaction")
+	}
+	message, err := convertReactionFromStoreWithCreators(reaction, nil, buildMemoName(memo.UID))
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to convert anonymous reaction")
+	}
+	s.SSEHub.publishMemoChanged()
+	return message, nil
 }

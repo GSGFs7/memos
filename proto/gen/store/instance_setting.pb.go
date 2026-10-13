@@ -42,6 +42,8 @@ const (
 	InstanceSettingKey_AI InstanceSettingKey = 7
 	// ACCESS is the key for instance access policy settings.
 	InstanceSettingKey_ACCESS InstanceSettingKey = 8
+	// ANONYMOUS_REACTION configures anonymous reactions and human verification.
+	InstanceSettingKey_ANONYMOUS_REACTION InstanceSettingKey = 9
 )
 
 // Enum value maps for InstanceSettingKey.
@@ -56,6 +58,7 @@ var (
 		6: "NOTIFICATION",
 		7: "AI",
 		8: "ACCESS",
+		9: "ANONYMOUS_REACTION",
 	}
 	InstanceSettingKey_value = map[string]int32{
 		"INSTANCE_SETTING_KEY_UNSPECIFIED": 0,
@@ -67,6 +70,7 @@ var (
 		"NOTIFICATION":                     6,
 		"AI":                               7,
 		"ACCESS":                           8,
+		"ANONYMOUS_REACTION":               9,
 	}
 )
 
@@ -319,6 +323,7 @@ type InstanceSetting struct {
 	//	*InstanceSetting_NotificationSetting
 	//	*InstanceSetting_AiSetting
 	//	*InstanceSetting_AccessSetting
+	//	*InstanceSetting_AnonymousReactionSetting
 	Value         isInstanceSetting_Value `protobuf_oneof:"value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -440,6 +445,15 @@ func (x *InstanceSetting) GetAccessSetting() *InstanceAccessSetting {
 	return nil
 }
 
+func (x *InstanceSetting) GetAnonymousReactionSetting() *InstanceAnonymousReactionSetting {
+	if x != nil {
+		if x, ok := x.Value.(*InstanceSetting_AnonymousReactionSetting); ok {
+			return x.AnonymousReactionSetting
+		}
+	}
+	return nil
+}
+
 type isInstanceSetting_Value interface {
 	isInstanceSetting_Value()
 }
@@ -476,6 +490,10 @@ type InstanceSetting_AccessSetting struct {
 	AccessSetting *InstanceAccessSetting `protobuf:"bytes,9,opt,name=access_setting,json=accessSetting,proto3,oneof"`
 }
 
+type InstanceSetting_AnonymousReactionSetting struct {
+	AnonymousReactionSetting *InstanceAnonymousReactionSetting `protobuf:"bytes,10,opt,name=anonymous_reaction_setting,json=anonymousReactionSetting,proto3,oneof"`
+}
+
 func (*InstanceSetting_BasicSetting) isInstanceSetting_Value() {}
 
 func (*InstanceSetting_GeneralSetting) isInstanceSetting_Value() {}
@@ -491,6 +509,8 @@ func (*InstanceSetting_NotificationSetting) isInstanceSetting_Value() {}
 func (*InstanceSetting_AiSetting) isInstanceSetting_Value() {}
 
 func (*InstanceSetting_AccessSetting) isInstanceSetting_Value() {}
+
+func (*InstanceSetting_AnonymousReactionSetting) isInstanceSetting_Value() {}
 
 type InstanceBasicSetting struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1472,6 +1492,75 @@ func (x *InstanceAccessSetting) GetAccessMode() InstanceAccessMode {
 	return InstanceAccessMode_INSTANCE_ACCESS_MODE_UNSPECIFIED
 }
 
+// InstanceAnonymousReactionSetting configures anonymous reactions independently of authentication.
+type InstanceAnonymousReactionSetting struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	SiteKey       string                 `protobuf:"bytes,2,opt,name=site_key,json=siteKey,proto3" json:"site_key,omitempty"`
+	SecretKey     string                 `protobuf:"bytes,3,opt,name=secret_key,json=secretKey,proto3" json:"secret_key,omitempty"`
+	Hostnames     []string               `protobuf:"bytes,4,rep,name=hostnames,proto3" json:"hostnames,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstanceAnonymousReactionSetting) Reset() {
+	*x = InstanceAnonymousReactionSetting{}
+	mi := &file_store_instance_setting_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstanceAnonymousReactionSetting) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstanceAnonymousReactionSetting) ProtoMessage() {}
+
+func (x *InstanceAnonymousReactionSetting) ProtoReflect() protoreflect.Message {
+	mi := &file_store_instance_setting_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstanceAnonymousReactionSetting.ProtoReflect.Descriptor instead.
+func (*InstanceAnonymousReactionSetting) Descriptor() ([]byte, []int) {
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *InstanceAnonymousReactionSetting) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *InstanceAnonymousReactionSetting) GetSiteKey() string {
+	if x != nil {
+		return x.SiteKey
+	}
+	return ""
+}
+
+func (x *InstanceAnonymousReactionSetting) GetSecretKey() string {
+	if x != nil {
+		return x.SecretKey
+	}
+	return ""
+}
+
+func (x *InstanceAnonymousReactionSetting) GetHostnames() []string {
+	if x != nil {
+		return x.Hostnames
+	}
+	return nil
+}
+
 type InstanceNotificationSetting_EmailSetting struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
@@ -1490,7 +1579,7 @@ type InstanceNotificationSetting_EmailSetting struct {
 
 func (x *InstanceNotificationSetting_EmailSetting) Reset() {
 	*x = InstanceNotificationSetting_EmailSetting{}
-	mi := &file_store_instance_setting_proto_msgTypes[16]
+	mi := &file_store_instance_setting_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1502,7 +1591,7 @@ func (x *InstanceNotificationSetting_EmailSetting) String() string {
 func (*InstanceNotificationSetting_EmailSetting) ProtoMessage() {}
 
 func (x *InstanceNotificationSetting_EmailSetting) ProtoReflect() protoreflect.Message {
-	mi := &file_store_instance_setting_proto_msgTypes[16]
+	mi := &file_store_instance_setting_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1592,7 +1681,7 @@ var File_store_instance_setting_proto protoreflect.FileDescriptor
 
 const file_store_instance_setting_proto_rawDesc = "" +
 	"\n" +
-	"\x1cstore/instance_setting.proto\x12\vmemos.store\x1a\x17google/type/color.proto\"\xc8\x05\n" +
+	"\x1cstore/instance_setting.proto\x12\vmemos.store\x1a\x17google/type/color.proto\"\xb7\x06\n" +
 	"\x0fInstanceSetting\x121\n" +
 	"\x03key\x18\x01 \x01(\x0e2\x1f.memos.store.InstanceSettingKeyR\x03key\x12H\n" +
 	"\rbasic_setting\x18\x02 \x01(\v2!.memos.store.InstanceBasicSettingH\x00R\fbasicSetting\x12N\n" +
@@ -1603,7 +1692,9 @@ const file_store_instance_setting_proto_rawDesc = "" +
 	"\x14notification_setting\x18\a \x01(\v2(.memos.store.InstanceNotificationSettingH\x00R\x13notificationSetting\x12?\n" +
 	"\n" +
 	"ai_setting\x18\b \x01(\v2\x1e.memos.store.InstanceAISettingH\x00R\taiSetting\x12K\n" +
-	"\x0eaccess_setting\x18\t \x01(\v2\".memos.store.InstanceAccessSettingH\x00R\raccessSettingB\a\n" +
+	"\x0eaccess_setting\x18\t \x01(\v2\".memos.store.InstanceAccessSettingH\x00R\raccessSetting\x12m\n" +
+	"\x1aanonymous_reaction_setting\x18\n" +
+	" \x01(\v2-.memos.store.InstanceAnonymousReactionSettingH\x00R\x18anonymousReactionSettingB\a\n" +
 	"\x05value\"\\\n" +
 	"\x14InstanceBasicSetting\x12\x1d\n" +
 	"\n" +
@@ -1693,7 +1784,13 @@ const file_store_instance_setting_proto_rawDesc = "" +
 	"\x06prompt\x18\x04 \x01(\tR\x06prompt\"Y\n" +
 	"\x15InstanceAccessSetting\x12@\n" +
 	"\vaccess_mode\x18\x01 \x01(\x0e2\x1f.memos.store.InstanceAccessModeR\n" +
-	"accessMode*\xa1\x01\n" +
+	"accessMode\"\x94\x01\n" +
+	" InstanceAnonymousReactionSetting\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x19\n" +
+	"\bsite_key\x18\x02 \x01(\tR\asiteKey\x12\x1d\n" +
+	"\n" +
+	"secret_key\x18\x03 \x01(\tR\tsecretKey\x12\x1c\n" +
+	"\thostnames\x18\x04 \x03(\tR\thostnames*\xb9\x01\n" +
 	"\x12InstanceSettingKey\x12$\n" +
 	" INSTANCE_SETTING_KEY_UNSPECIFIED\x10\x00\x12\t\n" +
 	"\x05BASIC\x10\x01\x12\v\n" +
@@ -1704,7 +1801,8 @@ const file_store_instance_setting_proto_rawDesc = "" +
 	"\fNOTIFICATION\x10\x06\x12\x06\n" +
 	"\x02AI\x10\a\x12\n" +
 	"\n" +
-	"\x06ACCESS\x10\b*s\n" +
+	"\x06ACCESS\x10\b\x12\x16\n" +
+	"\x12ANONYMOUS_REACTION\x10\t*s\n" +
 	"\vStorageType\x12\x1c\n" +
 	"\x18STORAGE_TYPE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15STORAGE_TYPE_DATABASE\x10\x01\x12\x16\n" +
@@ -1735,7 +1833,7 @@ func file_store_instance_setting_proto_rawDescGZIP() []byte {
 }
 
 var file_store_instance_setting_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_store_instance_setting_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_store_instance_setting_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_store_instance_setting_proto_goTypes = []any{
 	(InstanceSettingKey)(0),                          // 0: memos.store.InstanceSettingKey
 	(StorageType)(0),                                 // 1: memos.store.StorageType
@@ -1757,9 +1855,10 @@ var file_store_instance_setting_proto_goTypes = []any{
 	(*AIProviderConfig)(nil),                         // 17: memos.store.AIProviderConfig
 	(*TranscriptionConfig)(nil),                      // 18: memos.store.TranscriptionConfig
 	(*InstanceAccessSetting)(nil),                    // 19: memos.store.InstanceAccessSetting
-	nil,                                              // 20: memos.store.InstanceTagsSetting.TagsEntry
-	(*InstanceNotificationSetting_EmailSetting)(nil), // 21: memos.store.InstanceNotificationSetting.EmailSetting
-	(*color.Color)(nil),                              // 22: google.type.Color
+	(*InstanceAnonymousReactionSetting)(nil),         // 20: memos.store.InstanceAnonymousReactionSetting
+	nil,                                              // 21: memos.store.InstanceTagsSetting.TagsEntry
+	(*InstanceNotificationSetting_EmailSetting)(nil), // 22: memos.store.InstanceNotificationSetting.EmailSetting
+	(*color.Color)(nil),                              // 23: google.type.Color
 }
 var file_store_instance_setting_proto_depIdxs = []int32{
 	0,  // 0: memos.store.InstanceSetting.key:type_name -> memos.store.InstanceSettingKey
@@ -1771,25 +1870,26 @@ var file_store_instance_setting_proto_depIdxs = []int32{
 	15, // 6: memos.store.InstanceSetting.notification_setting:type_name -> memos.store.InstanceNotificationSetting
 	16, // 7: memos.store.InstanceSetting.ai_setting:type_name -> memos.store.InstanceAISetting
 	19, // 8: memos.store.InstanceSetting.access_setting:type_name -> memos.store.InstanceAccessSetting
-	8,  // 9: memos.store.InstanceGeneralSetting.custom_profile:type_name -> memos.store.InstanceCustomProfile
-	1,  // 10: memos.store.Storage.type:type_name -> memos.store.StorageType
-	11, // 11: memos.store.Storage.s3_config:type_name -> memos.store.StorageS3Config
-	4,  // 12: memos.store.InstanceStorageSetting.storage_type:type_name -> memos.store.InstanceStorageSetting.StorageType
-	11, // 13: memos.store.InstanceStorageSetting.s3_config:type_name -> memos.store.StorageS3Config
-	9,  // 14: memos.store.InstanceStorageSetting.storages:type_name -> memos.store.Storage
-	22, // 15: memos.store.InstanceTagMetadata.background_color:type_name -> google.type.Color
-	20, // 16: memos.store.InstanceTagsSetting.tags:type_name -> memos.store.InstanceTagsSetting.TagsEntry
-	21, // 17: memos.store.InstanceNotificationSetting.email:type_name -> memos.store.InstanceNotificationSetting.EmailSetting
-	17, // 18: memos.store.InstanceAISetting.providers:type_name -> memos.store.AIProviderConfig
-	18, // 19: memos.store.InstanceAISetting.transcription:type_name -> memos.store.TranscriptionConfig
-	2,  // 20: memos.store.AIProviderConfig.type:type_name -> memos.store.AIProviderType
-	3,  // 21: memos.store.InstanceAccessSetting.access_mode:type_name -> memos.store.InstanceAccessMode
-	13, // 22: memos.store.InstanceTagsSetting.TagsEntry.value:type_name -> memos.store.InstanceTagMetadata
-	23, // [23:23] is the sub-list for method output_type
-	23, // [23:23] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	20, // 9: memos.store.InstanceSetting.anonymous_reaction_setting:type_name -> memos.store.InstanceAnonymousReactionSetting
+	8,  // 10: memos.store.InstanceGeneralSetting.custom_profile:type_name -> memos.store.InstanceCustomProfile
+	1,  // 11: memos.store.Storage.type:type_name -> memos.store.StorageType
+	11, // 12: memos.store.Storage.s3_config:type_name -> memos.store.StorageS3Config
+	4,  // 13: memos.store.InstanceStorageSetting.storage_type:type_name -> memos.store.InstanceStorageSetting.StorageType
+	11, // 14: memos.store.InstanceStorageSetting.s3_config:type_name -> memos.store.StorageS3Config
+	9,  // 15: memos.store.InstanceStorageSetting.storages:type_name -> memos.store.Storage
+	23, // 16: memos.store.InstanceTagMetadata.background_color:type_name -> google.type.Color
+	21, // 17: memos.store.InstanceTagsSetting.tags:type_name -> memos.store.InstanceTagsSetting.TagsEntry
+	22, // 18: memos.store.InstanceNotificationSetting.email:type_name -> memos.store.InstanceNotificationSetting.EmailSetting
+	17, // 19: memos.store.InstanceAISetting.providers:type_name -> memos.store.AIProviderConfig
+	18, // 20: memos.store.InstanceAISetting.transcription:type_name -> memos.store.TranscriptionConfig
+	2,  // 21: memos.store.AIProviderConfig.type:type_name -> memos.store.AIProviderType
+	3,  // 22: memos.store.InstanceAccessSetting.access_mode:type_name -> memos.store.InstanceAccessMode
+	13, // 23: memos.store.InstanceTagsSetting.TagsEntry.value:type_name -> memos.store.InstanceTagMetadata
+	24, // [24:24] is the sub-list for method output_type
+	24, // [24:24] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_store_instance_setting_proto_init() }
@@ -1806,6 +1906,7 @@ func file_store_instance_setting_proto_init() {
 		(*InstanceSetting_NotificationSetting)(nil),
 		(*InstanceSetting_AiSetting)(nil),
 		(*InstanceSetting_AccessSetting)(nil),
+		(*InstanceSetting_AnonymousReactionSetting)(nil),
 	}
 	file_store_instance_setting_proto_msgTypes[4].OneofWrappers = []any{
 		(*Storage_S3Config)(nil),
@@ -1816,7 +1917,7 @@ func file_store_instance_setting_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_store_instance_setting_proto_rawDesc), len(file_store_instance_setting_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   17,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

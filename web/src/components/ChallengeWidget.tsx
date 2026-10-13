@@ -7,8 +7,13 @@ export const CHALLENGE_TOKEN_HEADER = "Challenge-Token";
 interface Props {
   /** Receives the token when the user passes, and null when it expires or resets. */
   onToken: (token: string | null) => void;
+  /** Reports loading or verification errors so action dialogs can exit cleanly. */
+  onError?: () => void;
   /** Bump to reset the widget, for instance after the server rejected a token. */
   resetKey?: number;
+  /** Use a separate widget configuration without affecting signup or sign-in. */
+  challenge?: { provider: string; siteKey: string };
+  action?: string;
 }
 
 interface ProviderScript {
@@ -63,13 +68,15 @@ function loadProvider(provider: ProviderScript): Promise<WidgetApi> {
  * nothing when the instance has none. The open-source app carries the widget
  * code for the providers it knows; verification happens on the server.
  */
-function ChallengeWidget({ onToken, resetKey = 0 }: Props) {
+function ChallengeWidget({ onToken, onError, resetKey = 0, challenge: configuredChallenge, action }: Props) {
   const { profile } = useInstance();
-  const challenge = profile.challenge;
+  const challenge = configuredChallenge ?? profile.challenge;
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<{ api: WidgetApi; id: string } | null>(null);
   const onTokenRef = useRef(onToken);
   onTokenRef.current = onToken;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   const provider = challenge ? PROVIDERS[challenge.provider] : undefined;
   const siteKey = challenge?.siteKey ?? "";
@@ -85,15 +92,22 @@ function ChallengeWidget({ onToken, resetKey = 0 }: Props) {
         if (cancelled) return;
         const id = api.render(container, {
           sitekey: siteKey,
-          callback: (token: string) => onTokenRef.current(token),
-          "expired-callback": () => onTokenRef.current(null),
-          "error-callback": () => onTokenRef.current(null),
+          ...(action ? { action } : {}),
+          callback: (token: string) => !cancelled && onTokenRef.current(token),
+          "expired-callback": () => !cancelled && onTokenRef.current(null),
+          "error-callback": () => {
+            if (cancelled) return;
+            onTokenRef.current(null);
+            onErrorRef.current?.();
+          },
         });
         widgetRef.current = { api, id };
       })
       .catch((error: unknown) => {
+        if (cancelled) return;
         console.error(error);
         onTokenRef.current(null);
+        onErrorRef.current?.();
       });
     return () => {
       cancelled = true;
@@ -108,7 +122,7 @@ function ChallengeWidget({ onToken, resetKey = 0 }: Props) {
       }
       container.replaceChildren();
     };
-  }, [provider, siteKey]);
+  }, [provider, siteKey, action]);
 
   useEffect(() => {
     if (resetKey === 0) return;

@@ -122,6 +122,7 @@ CREATE TABLE `reaction` (
   `creator_id` INT NOT NULL,
   `memo_id` INT NOT NULL,
   `reaction_type` VARCHAR(256) NOT NULL,
+  anonymous_count BIGINT NOT NULL DEFAULT 0,
   UNIQUE(`creator_id`,`memo_id`,`reaction_type`)
 );
 

@@ -309,6 +309,8 @@ func TestMigrationSpaceMemberStatusBackfillsActive(t *testing.T) {
 	db := ts.GetDriver().GetDB()
 	_, err = db.ExecContext(ctx, "ALTER TABLE space_member DROP COLUMN status")
 	require.NoError(t, err)
+	_, err = db.ExecContext(ctx, "ALTER TABLE reaction DROP COLUMN anonymous_count")
+	require.NoError(t, err)
 	_, err = db.ExecContext(ctx, "ALTER TABLE space DROP COLUMN payload")
 	require.NoError(t, err)
 

@@ -20,26 +20,27 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MemoService_CreateMemo_FullMethodName           = "/memos.api.v1.MemoService/CreateMemo"
-	MemoService_ListMemos_FullMethodName            = "/memos.api.v1.MemoService/ListMemos"
-	MemoService_GetMemo_FullMethodName              = "/memos.api.v1.MemoService/GetMemo"
-	MemoService_UpdateMemo_FullMethodName           = "/memos.api.v1.MemoService/UpdateMemo"
-	MemoService_DeleteMemo_FullMethodName           = "/memos.api.v1.MemoService/DeleteMemo"
-	MemoService_SetMemoAttachments_FullMethodName   = "/memos.api.v1.MemoService/SetMemoAttachments"
-	MemoService_ListMemoAttachments_FullMethodName  = "/memos.api.v1.MemoService/ListMemoAttachments"
-	MemoService_SetMemoRelations_FullMethodName     = "/memos.api.v1.MemoService/SetMemoRelations"
-	MemoService_ListMemoRelations_FullMethodName    = "/memos.api.v1.MemoService/ListMemoRelations"
-	MemoService_CreateMemoComment_FullMethodName    = "/memos.api.v1.MemoService/CreateMemoComment"
-	MemoService_ListMemoComments_FullMethodName     = "/memos.api.v1.MemoService/ListMemoComments"
-	MemoService_ListMemoReactions_FullMethodName    = "/memos.api.v1.MemoService/ListMemoReactions"
-	MemoService_UpsertMemoReaction_FullMethodName   = "/memos.api.v1.MemoService/UpsertMemoReaction"
-	MemoService_DeleteMemoReaction_FullMethodName   = "/memos.api.v1.MemoService/DeleteMemoReaction"
-	MemoService_CreateMemoShare_FullMethodName      = "/memos.api.v1.MemoService/CreateMemoShare"
-	MemoService_ListMemoShares_FullMethodName       = "/memos.api.v1.MemoService/ListMemoShares"
-	MemoService_DeleteMemoShare_FullMethodName      = "/memos.api.v1.MemoService/DeleteMemoShare"
-	MemoService_GetSharedMemo_FullMethodName        = "/memos.api.v1.MemoService/GetSharedMemo"
-	MemoService_GetLinkMetadata_FullMethodName      = "/memos.api.v1.MemoService/GetLinkMetadata"
-	MemoService_BatchGetLinkMetadata_FullMethodName = "/memos.api.v1.MemoService/BatchGetLinkMetadata"
+	MemoService_CreateMemo_FullMethodName               = "/memos.api.v1.MemoService/CreateMemo"
+	MemoService_ListMemos_FullMethodName                = "/memos.api.v1.MemoService/ListMemos"
+	MemoService_GetMemo_FullMethodName                  = "/memos.api.v1.MemoService/GetMemo"
+	MemoService_UpdateMemo_FullMethodName               = "/memos.api.v1.MemoService/UpdateMemo"
+	MemoService_DeleteMemo_FullMethodName               = "/memos.api.v1.MemoService/DeleteMemo"
+	MemoService_SetMemoAttachments_FullMethodName       = "/memos.api.v1.MemoService/SetMemoAttachments"
+	MemoService_ListMemoAttachments_FullMethodName      = "/memos.api.v1.MemoService/ListMemoAttachments"
+	MemoService_SetMemoRelations_FullMethodName         = "/memos.api.v1.MemoService/SetMemoRelations"
+	MemoService_ListMemoRelations_FullMethodName        = "/memos.api.v1.MemoService/ListMemoRelations"
+	MemoService_CreateMemoComment_FullMethodName        = "/memos.api.v1.MemoService/CreateMemoComment"
+	MemoService_ListMemoComments_FullMethodName         = "/memos.api.v1.MemoService/ListMemoComments"
+	MemoService_ListMemoReactions_FullMethodName        = "/memos.api.v1.MemoService/ListMemoReactions"
+	MemoService_UpsertMemoReaction_FullMethodName       = "/memos.api.v1.MemoService/UpsertMemoReaction"
+	MemoService_AddAnonymousMemoReaction_FullMethodName = "/memos.api.v1.MemoService/AddAnonymousMemoReaction"
+	MemoService_DeleteMemoReaction_FullMethodName       = "/memos.api.v1.MemoService/DeleteMemoReaction"
+	MemoService_CreateMemoShare_FullMethodName          = "/memos.api.v1.MemoService/CreateMemoShare"
+	MemoService_ListMemoShares_FullMethodName           = "/memos.api.v1.MemoService/ListMemoShares"
+	MemoService_DeleteMemoShare_FullMethodName          = "/memos.api.v1.MemoService/DeleteMemoShare"
+	MemoService_GetSharedMemo_FullMethodName            = "/memos.api.v1.MemoService/GetSharedMemo"
+	MemoService_GetLinkMetadata_FullMethodName          = "/memos.api.v1.MemoService/GetLinkMetadata"
+	MemoService_BatchGetLinkMetadata_FullMethodName     = "/memos.api.v1.MemoService/BatchGetLinkMetadata"
 )
 
 // MemoServiceClient is the client API for MemoService service.
@@ -82,6 +83,8 @@ type MemoServiceClient interface {
 	ListMemoReactions(ctx context.Context, in *ListMemoReactionsRequest, opts ...grpc.CallOption) (*ListMemoReactionsResponse, error)
 	// UpsertMemoReaction adds or updates the authenticated user's reaction on a memo.
 	UpsertMemoReaction(ctx context.Context, in *UpsertMemoReactionRequest, opts ...grpc.CallOption) (*Reaction, error)
+	// AddAnonymousMemoReaction increments an anonymous reaction after human verification.
+	AddAnonymousMemoReaction(ctx context.Context, in *AddAnonymousMemoReactionRequest, opts ...grpc.CallOption) (*Reaction, error)
 	// DeleteMemoReaction deletes a reaction for a memo.
 	DeleteMemoReaction(ctx context.Context, in *DeleteMemoReactionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// CreateMemoShare creates a share link for a memo. Requires the memo creator or an instance administrator.
@@ -237,6 +240,16 @@ func (c *memoServiceClient) UpsertMemoReaction(ctx context.Context, in *UpsertMe
 	return out, nil
 }
 
+func (c *memoServiceClient) AddAnonymousMemoReaction(ctx context.Context, in *AddAnonymousMemoReactionRequest, opts ...grpc.CallOption) (*Reaction, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Reaction)
+	err := c.cc.Invoke(ctx, MemoService_AddAnonymousMemoReaction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *memoServiceClient) DeleteMemoReaction(ctx context.Context, in *DeleteMemoReactionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -347,6 +360,8 @@ type MemoServiceServer interface {
 	ListMemoReactions(context.Context, *ListMemoReactionsRequest) (*ListMemoReactionsResponse, error)
 	// UpsertMemoReaction adds or updates the authenticated user's reaction on a memo.
 	UpsertMemoReaction(context.Context, *UpsertMemoReactionRequest) (*Reaction, error)
+	// AddAnonymousMemoReaction increments an anonymous reaction after human verification.
+	AddAnonymousMemoReaction(context.Context, *AddAnonymousMemoReactionRequest) (*Reaction, error)
 	// DeleteMemoReaction deletes a reaction for a memo.
 	DeleteMemoReaction(context.Context, *DeleteMemoReactionRequest) (*emptypb.Empty, error)
 	// CreateMemoShare creates a share link for a memo. Requires the memo creator or an instance administrator.
@@ -410,6 +425,9 @@ func (UnimplementedMemoServiceServer) ListMemoReactions(context.Context, *ListMe
 }
 func (UnimplementedMemoServiceServer) UpsertMemoReaction(context.Context, *UpsertMemoReactionRequest) (*Reaction, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpsertMemoReaction not implemented")
+}
+func (UnimplementedMemoServiceServer) AddAnonymousMemoReaction(context.Context, *AddAnonymousMemoReactionRequest) (*Reaction, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddAnonymousMemoReaction not implemented")
 }
 func (UnimplementedMemoServiceServer) DeleteMemoReaction(context.Context, *DeleteMemoReactionRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteMemoReaction not implemented")
@@ -687,6 +705,24 @@ func _MemoService_UpsertMemoReaction_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemoService_AddAnonymousMemoReaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddAnonymousMemoReactionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoServiceServer).AddAnonymousMemoReaction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoService_AddAnonymousMemoReaction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoServiceServer).AddAnonymousMemoReaction(ctx, req.(*AddAnonymousMemoReactionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MemoService_DeleteMemoReaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteMemoReactionRequest)
 	if err := dec(in); err != nil {
@@ -871,6 +907,10 @@ var MemoService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpsertMemoReaction",
 			Handler:    _MemoService_UpsertMemoReaction_Handler,
+		},
+		{
+			MethodName: "AddAnonymousMemoReaction",
+			Handler:    _MemoService_AddAnonymousMemoReaction_Handler,
 		},
 		{
 			MethodName: "DeleteMemoReaction",

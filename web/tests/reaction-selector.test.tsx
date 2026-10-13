@@ -7,9 +7,12 @@ import { MemoSchema } from "@/types/proto/api/v1/memo_service_pb";
 vi.mock("@/components/MemoReactionListView/hooks", () => ({
   useReactionActions: () => ({
     hasReacted: () => false,
+    canReact: true,
     handleReactionClick: vi.fn(),
   }),
 }));
+
+vi.mock("@/hooks/useCurrentUser", () => ({ default: () => undefined }));
 
 vi.mock("@/contexts/InstanceContext", () => ({
   useInstance: () => ({ memoRelatedSetting: { reactions: ["👍"] } }),

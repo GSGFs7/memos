@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	storepb "github.com/usememos/memos/proto/gen/store"
 	"github.com/usememos/memos/store"
 	"github.com/usememos/memos/store/db"
 )
@@ -492,4 +493,94 @@ func createReactionTestMemo(ctx context.Context, t *testing.T, ts *store.Store, 
 	})
 	require.NoError(t, err)
 	return memo
+}
+
+func TestAnonymousReactionStore(t *testing.T) {
+	ctx := context.Background()
+	ts := NewTestingStore(ctx, t)
+	defer ts.Close()
+	user, err := createTestingHostUser(ctx, ts)
+	require.NoError(t, err)
+	memo := createReactionTestMemo(ctx, t, ts, user.ID, "anonymous-store")
+	visibility := store.Public
+	err = ts.UpdateMemo(ctx, &store.UpdateMemo{ID: memo.ID, Visibility: &visibility})
+	require.NoError(t, err)
+	for i := int64(1); i <= 3; i++ {
+		reaction, err := ts.AddAnonymousReaction(ctx, memo.ID, "👍")
+		require.NoError(t, err)
+		require.Zero(t, reaction.CreatorID)
+		require.Equal(t, i, reaction.AnonymousCount)
+	}
+	reactions, err := ts.ListReactions(ctx, &store.FindReaction{MemoID: &memo.ID})
+	require.NoError(t, err)
+	require.Len(t, reactions, 1)
+	require.Equal(t, int64(3), reactions[0].AnonymousCount)
+	visibility = store.Private
+	err = ts.UpdateMemo(ctx, &store.UpdateMemo{ID: memo.ID, Visibility: &visibility})
+	require.NoError(t, err)
+	_, err = ts.AddAnonymousReaction(ctx, memo.ID, "👍")
+	require.ErrorIs(t, err, store.ErrReactionPermissionDenied)
+	visibility = store.Public
+	archived := store.Archived
+	err = ts.UpdateMemo(ctx, &store.UpdateMemo{ID: memo.ID, Visibility: &visibility, RowStatus: &archived})
+	require.NoError(t, err)
+	_, err = ts.AddAnonymousReaction(ctx, memo.ID, "👍")
+	require.ErrorIs(t, err, store.ErrReactionPermissionDenied)
+	require.NoError(t, ts.DeleteMemo(ctx, &store.DeleteMemo{ID: memo.ID}))
+	reactions, err = ts.ListReactions(ctx, &store.FindReaction{MemoID: &memo.ID})
+	require.NoError(t, err)
+	require.Empty(t, reactions)
+	_, err = ts.AddAnonymousReaction(ctx, memo.ID, "👍")
+	require.ErrorIs(t, err, store.ErrReactionPermissionDenied)
+}
+
+func TestAnonymousReactionMigration(t *testing.T) {
+	ctx := context.Background()
+	ts := NewTestingStore(ctx, t)
+	defer ts.Close()
+	user, err := createTestingHostUser(ctx, ts)
+	require.NoError(t, err)
+	memo := createReactionTestMemo(ctx, t, ts, user.ID, "anonymous-migration")
+	reaction, err := ts.UpsertReaction(ctx, &store.Reaction{CreatorID: user.ID, MemoID: memo.ID, ReactionType: "👍"})
+	require.NoError(t, err)
+	_, err = ts.GetDriver().GetDB().ExecContext(ctx, "ALTER TABLE reaction DROP COLUMN anonymous_count")
+	require.NoError(t, err)
+	setting, err := ts.GetInstanceBasicSetting(ctx)
+	require.NoError(t, err)
+	setting.SchemaVersion = "0.31.8"
+	_, err = ts.UpsertInstanceSetting(ctx, &storepb.InstanceSetting{Key: storepb.InstanceSettingKey_BASIC, Value: &storepb.InstanceSetting_BasicSetting{BasicSetting: setting}})
+	require.NoError(t, err)
+	require.NoError(t, ts.Migrate(ctx))
+	restored, err := ts.GetReaction(ctx, &store.FindReaction{ID: &reaction.ID})
+	require.NoError(t, err)
+	require.Equal(t, reaction, restored)
+}
+
+func TestAnonymousReactionConcurrentAdditions(t *testing.T) {
+	ctx := context.Background()
+	ts := NewTestingStore(ctx, t)
+	defer ts.Close()
+	user, err := createTestingHostUser(ctx, ts)
+	require.NoError(t, err)
+	memo := createReactionTestMemo(ctx, t, ts, user.ID, "anonymous-concurrent")
+	visibility := store.Public
+	require.NoError(t, ts.UpdateMemo(ctx, &store.UpdateMemo{ID: memo.ID, Visibility: &visibility}))
+	const additions = 8
+	results := make(chan error, additions)
+	for range additions {
+		go func() { _, err := ts.AddAnonymousReaction(ctx, memo.ID, "👍"); results <- err }()
+	}
+	for range additions {
+		require.NoError(t, <-results)
+	}
+	reactions, err := ts.ListReactions(ctx, &store.FindReaction{MemoID: &memo.ID})
+	require.NoError(t, err)
+	require.Len(t, reactions, 1)
+	require.Equal(t, int64(additions), reactions[0].AnonymousCount)
+	space, err := ts.CreateSpace(ctx, &store.Space{UID: "anonymous-space", Title: "Space"}, user.ID)
+	require.NoError(t, err)
+	// Trusted fixture update simulates reassignment after the earlier API access check.
+	require.NoError(t, ts.UpdateMemo(ctx, &store.UpdateMemo{ID: memo.ID, SpaceID: &space.ID}))
+	_, err = ts.AddAnonymousReaction(ctx, memo.ID, "👍")
+	require.ErrorIs(t, err, store.ErrReactionPermissionDenied)
 }

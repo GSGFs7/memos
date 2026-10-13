@@ -57,3 +57,14 @@ func TestVersionFormsPrintTheSameString(t *testing.T) {
 	require.Equal(t, expected, run("--version"))
 	require.Equal(t, expected, run("-V"))
 }
+
+func TestAnonymousReactionHostnamesSplitEnvironmentForm(t *testing.T) {
+	const key = "anonymous-reaction-hostnames"
+	original := viper.Get(key)
+	t.Cleanup(func() { viper.Set(key, original) })
+	viper.Set(key, "memos.example,localhost")
+	require.Equal(t, []string{"memos.example", "localhost"}, anonymousReactionHostnames())
+	viper.Set(key, []string{"memos.example, localhost", "127.0.0.1"})
+	require.Equal(t, []string{"memos.example", "localhost", "127.0.0.1"}, anonymousReactionHostnames())
+	require.Nil(t, rootCmd.Flags().Lookup("anonymous-reaction-secret"), "secret must stay out of command-line arguments")
+}

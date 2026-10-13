@@ -85,7 +85,8 @@ func (d *DB) ListReactions(ctx context.Context, find *store.FindReaction) ([]*st
 			UNIX_TIMESTAMP(created_ts) AS created_ts,
 			creator_id,
 			memo_id,
-			reaction_type
+			reaction_type,
+			anonymous_count
 		FROM reaction
 		WHERE `+strings.Join(where, " AND ")+`
 		ORDER BY id ASC`,
@@ -105,6 +106,7 @@ func (d *DB) ListReactions(ctx context.Context, find *store.FindReaction) ([]*st
 			&reaction.CreatorID,
 			&reaction.MemoID,
 			&reaction.ReactionType,
+			&reaction.AnonymousCount,
 		); err != nil {
 			return nil, err
 		}
@@ -187,4 +189,31 @@ func (d *DB) deleteReactionAsCreator(ctx context.Context, delete *store.DeleteRe
 		return errors.Wrap(err, "failed to commit authorized reaction delete transaction")
 	}
 	return nil
+}
+
+func (d *DB) AddAnonymousReaction(ctx context.Context, memoID int32, reactionType string) (*store.Reaction, error) {
+	tx, err := d.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to begin anonymous reaction")
+	}
+	defer func() { _ = tx.Rollback() }()
+	var eligibleID int32
+	if err := tx.QueryRowContext(ctx, `SELECT id FROM memo WHERE id = ? AND visibility = 'PUBLIC' AND row_status = 'NORMAL' AND space_id IS NULL FOR UPDATE`, memoID).Scan(&eligibleID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, store.ErrReactionPermissionDenied
+		}
+		return nil, errors.Wrap(err, "failed to check anonymous reaction memo")
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO reaction (creator_id, memo_id, reaction_type, anonymous_count) VALUES (0, ?, ?, 1)
+ ON DUPLICATE KEY UPDATE anonymous_count = anonymous_count + 1`, memoID, reactionType); err != nil {
+		return nil, errors.Wrap(err, "failed to increment anonymous reaction")
+	}
+	reaction := &store.Reaction{MemoID: memoID, ReactionType: reactionType}
+	if err := tx.QueryRowContext(ctx, `SELECT id, UNIX_TIMESTAMP(created_ts), anonymous_count FROM reaction WHERE creator_id = 0 AND memo_id = ? AND reaction_type = ?`, memoID, reactionType).Scan(&reaction.ID, &reaction.CreatedTs, &reaction.AnonymousCount); err != nil {
+		return nil, errors.Wrap(err, "failed to read anonymous reaction")
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "failed to commit anonymous reaction")
+	}
+	return reaction, nil
 }

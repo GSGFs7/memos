@@ -342,7 +342,10 @@
       "success": "备忘录已移动",
       "space-audience": "{{space}} 的成员将可以阅读此备忘录。",
       "history": "现有表态会保留在此备忘录上。评论和关联的备忘录仍遵循各自的访问规则。"
-    }
+    },
+    "anonymous-reaction-title": "匿名表态",
+    "anonymous-reaction-count": "{{count}} 次匿名表态",
+    "anonymous-reaction-error": "添加失败，请重新验证后再试。"
   },
   "message": {
     "archived-successfully": "归档成功",
@@ -884,6 +887,20 @@
       "you": "您",
       "your-access": "您的访问权限",
       "your-spaces": "您的空间"
+    },
+    "anonymous-reaction": {
+      "enabled": "启用匿名表情",
+      "public-required": "匿名互动需要实例允许公开访问，请前往",
+      "open-dashboard": "打开 Cloudflare 控制台",
+      "secret-configured": "已保存密钥。留空保留现有密钥，输入新密钥可替换。",
+      "secret-description": "仅保存在服务端，不会返回到浏览器。",
+      "hostnames": "允许的域名",
+      "hostnames-description": "每行一个域名，不带 https://、路径或端口。应与 Cloudflare 中配置的域名一致。",
+      "incomplete": "启用前请填写 Site Key、Secret Key 和至少一个域名。",
+      "loading": "正在加载配置…",
+      "load-error": "加载配置失败。",
+      "save-error": "保存配置失败。",
+      "retry": "重试"
     }
   },
   "tooltip": {

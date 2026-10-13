@@ -22,6 +22,8 @@ type Reaction struct {
 	// MemoID is the ID of the memo that the reaction is for.
 	MemoID       int32
 	ReactionType string
+	// AnonymousCount holds anonymous additions; CreatorID is zero for aggregates.
+	AnonymousCount int64
 	// Policy is required for transport-facing participation mutations. A nil
 	// policy preserves trusted internal and migration callers.
 	Policy *ReactionWritePolicy
@@ -89,4 +91,12 @@ func (s *Store) DeleteReaction(ctx context.Context, delete *DeleteReaction) erro
 	}
 
 	return s.driver.DeleteReaction(ctx, delete)
+}
+
+// AddAnonymousReaction atomically increments a public, unassigned memo's aggregate.
+func (s *Store) AddAnonymousReaction(ctx context.Context, memoID int32, reactionType string) (*Reaction, error) {
+	if memoID <= 0 || reactionType == "" || len(reactionType) > 256 {
+		return nil, errors.New("invalid anonymous reaction")
+	}
+	return s.driver.AddAnonymousReaction(ctx, memoID, reactionType)
 }

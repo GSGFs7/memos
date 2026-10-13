@@ -124,6 +124,7 @@ CREATE TABLE reaction (
   creator_id INTEGER NOT NULL,
   memo_id INTEGER NOT NULL,
   reaction_type TEXT NOT NULL,
+  anonymous_count BIGINT NOT NULL DEFAULT 0,
   UNIQUE(creator_id, memo_id, reaction_type)
 );
 

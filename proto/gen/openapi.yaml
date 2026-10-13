@@ -1153,6 +1153,38 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
+    /api/v1/memos/{memo}/reactions:anonymous:
+        post:
+            tags:
+                - MemoService
+            description: AddAnonymousMemoReaction increments an anonymous reaction after human verification.
+            operationId: MemoService_AddAnonymousMemoReaction
+            parameters:
+                - name: memo
+                  in: path
+                  description: The memo id.
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AddAnonymousMemoReactionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Reaction'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
     /api/v1/memos/{memo}/relations:
         get:
             tags:
@@ -3019,6 +3051,19 @@ components:
                 name:
                     type: string
                     description: 'Required. Format: spaces/{space}/invitations/{username}.'
+        AddAnonymousMemoReactionRequest:
+            required:
+                - name
+                - reactionType
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: Required. Memo resource name, in the format memos/{memo}.
+                reactionType:
+                    type: string
+                    description: Required. One of the instance's configured reaction types.
+            description: Request to add an anonymous reaction. The verification token travels in Challenge-Token.
         Attachment:
             required:
                 - filename
@@ -3543,6 +3588,10 @@ components:
                     format: enum
                 challenge:
                     $ref: '#/components/schemas/InstanceProfile_Challenge'
+                anonymousReactionChallenge:
+                    allOf:
+                        - $ref: '#/components/schemas/InstanceProfile_Challenge'
+                    description: Human verification for anonymous reactions only. Absent when disabled.
             description: Instance profile message containing basic instance information.
         InstanceProfile_Challenge:
             type: object
@@ -3579,6 +3628,8 @@ components:
                     $ref: '#/components/schemas/InstanceSetting_AISetting'
                 accessSetting:
                     $ref: '#/components/schemas/InstanceSetting_AccessSetting'
+                anonymousReactionSetting:
+                    $ref: '#/components/schemas/InstanceSetting_AnonymousReactionSetting'
             description: An instance setting resource.
         InstanceSetting_AIProviderConfig:
             type: object
@@ -3635,6 +3686,27 @@ components:
                     type: string
                     format: enum
             description: Access policy configuration for the instance.
+        InstanceSetting_AnonymousReactionSetting:
+            type: object
+            properties:
+                enabled:
+                    type: boolean
+                siteKey:
+                    type: string
+                secretKey:
+                    writeOnly: true
+                    type: string
+                    description: Input only. Empty preserves the saved credential. Never returned, even to admins.
+                hostnames:
+                    type: array
+                    items:
+                        type: string
+                    description: Exact frontend hostnames, without schemes or ports.
+                hasSecret:
+                    readOnly: true
+                    type: boolean
+                    description: Output only. Whether a secret has been configured.
+            description: Anonymous reaction configuration. Only administrators may read or write it.
         InstanceSetting_GeneralSetting:
             type: object
             properties:
@@ -4537,6 +4609,12 @@ components:
                     type: string
                     description: Output only. The creation timestamp.
                     format: date-time
+                anonymousCount:
+                    readOnly: true
+                    type: string
+                    description: |-
+                        Output only. Anonymous additions represented by this aggregate. Its creator is empty.
+                         Zero for a signed-in user's reaction.
             description: Reaction is a reaction attached to a memo.
         RefreshTokenRequest:
             type: object

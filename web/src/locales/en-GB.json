@@ -317,7 +317,10 @@
     "new-badge": "New",
     "on-this-memo": "On this memo",
     "parent-memo": "Parent memo",
-    "view-options": "View options"
+    "view-options": "View options",
+    "anonymous-reaction-title": "Add an anonymous reaction",
+    "anonymous-reaction-count": "{{count}} anonymous reactions",
+    "anonymous-reaction-error": "Could not add your reaction. Please verify again and retry."
   },
   "message": {
     "archived-successfully": "Archived successfully",
@@ -859,6 +862,20 @@
       "you": "You",
       "your-access": "Your access",
       "your-spaces": "Your spaces"
+    },
+    "anonymous-reaction": {
+      "enabled": "Enable anonymous reactions",
+      "public-required": "Anonymous reactions require public instance access. Enable it in",
+      "open-dashboard": "Open Cloudflare dashboard",
+      "secret-configured": "A secret key is saved. Leave this blank to keep it; enter a new key to replace it.",
+      "secret-description": "Stored on the server and never returned to the browser.",
+      "hostnames": "Allowed hostnames",
+      "hostnames-description": "One hostname per line, without https://, paths or ports. Match the hostnames configured in Cloudflare.",
+      "incomplete": "Fill in the site key, secret key and at least one hostname before enabling.",
+      "loading": "Loading configuration…",
+      "load-error": "Could not load configuration.",
+      "save-error": "Could not save configuration.",
+      "retry": "Retry"
     }
   },
   "tooltip": {

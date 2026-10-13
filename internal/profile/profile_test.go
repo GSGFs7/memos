@@ -42,3 +42,39 @@ func TestValidateRejectsDemoWithNonSQLiteDriver(t *testing.T) {
 	p := &Profile{Demo: true, Driver: "postgres", Data: t.TempDir()}
 	require.ErrorContains(t, p.Validate(), "demo mode requires the sqlite database driver")
 }
+
+func TestValidateAnonymousReactionConfiguration(t *testing.T) {
+	for _, tc := range []struct {
+		name, siteKey, secret string
+		hostnames             []string
+		valid                 bool
+	}{
+		{"disabled", "", "", nil, true},
+		{"enabled", "public", "secret", []string{"memos.example"}, true},
+		{"missing secret", "public", "", []string{"memos.example"}, false},
+		{"missing hostnames", "public", "secret", nil, false},
+		{"wildcard hostname", "public", "secret", []string{"*.example"}, false},
+		{"URL hostname", "public", "secret", []string{"https://memos.example"}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := &Profile{Data: t.TempDir(), Driver: "sqlite", AnonymousReactionSiteKey: tc.siteKey, AnonymousReactionSecret: tc.secret, AnonymousReactionHostnames: tc.hostnames}
+			err := p.Validate()
+			if tc.valid {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateNormalizesAnonymousReactionConfiguration(t *testing.T) {
+	p := &Profile{
+		Data: t.TempDir(), Driver: "sqlite", AnonymousReactionSiteKey: " public ",
+		AnonymousReactionSecret: " secret ", AnonymousReactionHostnames: []string{" MEMOS.EXAMPLE "},
+	}
+	require.NoError(t, p.Validate())
+	require.Equal(t, "public", p.AnonymousReactionSiteKey)
+	require.Equal(t, "secret", p.AnonymousReactionSecret)
+	require.Equal(t, []string{"memos.example"}, p.AnonymousReactionHostnames)
+}

@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	colorpb "google.golang.org/genproto/googleapis/type/color"
 
+	"github.com/usememos/memos/core/reaction"
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
 	storepb "github.com/usememos/memos/proto/gen/store"
 	"github.com/usememos/memos/store"
@@ -47,7 +48,7 @@ func validateInstanceMemoRelatedSetting(setting *v1pb.InstanceSetting_MemoRelate
 	if setting.ContentLengthLimit < store.DefaultContentLengthLimit {
 		return errors.Errorf("content_length_limit must be at least %d bytes", store.DefaultContentLengthLimit)
 	}
-	return nil
+	return reaction.ValidateStickers(convertInstanceMemoRelatedSettingToStore(setting))
 }
 
 func validateInstanceAccessSetting(setting *v1pb.InstanceSetting_AccessSetting) error {

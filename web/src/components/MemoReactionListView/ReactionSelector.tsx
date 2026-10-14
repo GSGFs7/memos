@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import { useReactionActions } from "./hooks";
+import ReactionContent from "./ReactionContent";
 import { REACTION_ADD_CLASSES } from "./ReactionView";
 
 interface Props {
@@ -19,7 +20,7 @@ interface Props {
   trigger?: ReactElement;
 }
 
-/** The emoji picker. It owns only the popover and the grid; the trigger is the host's. */
+/** The reaction picker owns the popover and grid; the trigger is the host's. */
 const ReactionSelector = ({ memo, trigger }: Props) => {
   const t = useTranslate();
   const currentUser = useCurrentUser();
@@ -49,13 +50,13 @@ const ReactionSelector = ({ memo, trigger }: Props) => {
                 type="button"
                 key={reactionType}
                 className={cn(
-                  "inline-flex w-auto text-base cursor-pointer rounded px-1 text-muted-foreground hover:opacity-80 transition-colors",
+                  "inline-flex min-h-9 min-w-9 items-center justify-center text-base cursor-pointer rounded px-1 text-muted-foreground hover:opacity-80 transition-colors",
                   hasReacted(reactionType) && "bg-secondary text-secondary-foreground",
                 )}
                 disabled={pending || (!currentUser && hasReacted(reactionType))}
                 onClick={() => handleReactionClick(reactionType)}
               >
-                {reactionType}
+                <ReactionContent reactionType={reactionType} stickers={memoRelatedSetting.reactionStickers} className="size-8" />
               </button>
             ))}
           </div>

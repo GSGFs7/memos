@@ -1,6 +1,6 @@
 import { create } from "@bufbuild/protobuf";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MemoRelatedSettings from "@/components/Settings/MemoRelatedSettings";
 import { SETTINGS_SECTIONS } from "@/components/Settings/settingSections";
 import {
@@ -45,7 +45,38 @@ beforeEach(() => {
   });
 });
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe("anonymous interaction settings", () => {
+  it("uploads a sticker, saves its stable reaction ID, and retains its image when removed", async () => {
+    vi.stubGlobal(
+      "Image",
+      class {
+        naturalWidth = 32;
+        naturalHeight = 32;
+        onload?: () => void;
+        set src(_value: string) {
+          this.onload?.();
+        }
+      },
+    );
+    render(<MemoRelatedSettings />);
+    const file = new File(["image"], "wave.png", { type: "image/png" });
+    fireEvent.change(screen.getByLabelText("setting.memo.upload-sticker"), { target: { files: [file] } });
+    expect(await screen.findByRole("img", { name: "wave.png" })).toHaveAttribute("src", "data:image/png;base64,aW1hZ2U=");
+    fireEvent.click(screen.getByRole("button", { name: "common.save" }));
+    await waitFor(() => expect(mocks.updateMemo).toHaveBeenCalledTimes(1));
+    const setting = mocks.updateMemo.mock.calls[0][0].value.value;
+    const key = setting.reactions.find((reaction: string) => reaction.startsWith("sticker:"));
+    expect(setting.reactionStickers[key]).toMatchObject({ name: "wave.png", image: "data:image/png;base64,aW1hZ2U=" });
+    fireEvent.click(screen.getAllByRole("button", { name: "setting.memo.remove-reaction" })[1]);
+    fireEvent.click(screen.getByRole("button", { name: "common.save" }));
+    await waitFor(() => expect(mocks.updateMemo).toHaveBeenCalledTimes(2));
+    const removed = mocks.updateMemo.mock.calls[1][0].value.value;
+    expect(removed.reactions).toEqual(["👍"]);
+    expect(removed.reactionStickers[key]).toEqual(setting.reactionStickers[key]);
+  });
+
   it("keeps reactions in the admin memo section without a separate sidebar entry", () => {
     expect(SETTINGS_SECTIONS.some((section) => section.key === ("anonymous-reaction" as string))).toBe(false);
     expect(SETTINGS_SECTIONS.find((section) => section.key === "memo")).toMatchObject({ scope: "admin" });
@@ -89,7 +120,6 @@ describe("anonymous interaction settings", () => {
     });
     render(<MemoRelatedSettings />);
     expect(screen.getByLabelText("Secret Key")).toHaveValue("");
-    expect(screen.getByText("setting.anonymous-reaction.secret-configured")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("switch", { name: "setting.anonymous-reaction.enabled" }));
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));

@@ -3755,6 +3755,11 @@ components:
                     items:
                         type: string
                     description: reactions is the list of reactions.
+                reactionStickers:
+                    type: object
+                    additionalProperties:
+                        $ref: '#/components/schemas/InstanceSetting_ReactionSticker'
+                    description: Sticker images keyed by their stable reaction type (sticker:<id>).
             description: Memo-related instance settings and policies.
         InstanceSetting_NotificationSetting:
             type: object
@@ -3762,6 +3767,16 @@ components:
                 email:
                     $ref: '#/components/schemas/NotificationSetting_EmailSetting'
             description: Notification transport configuration.
+        InstanceSetting_ReactionSticker:
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: Display name of the sticker.
+                image:
+                    type: string
+                    description: Base64 image data URI (PNG, JPEG, GIF or WebP).
+            description: An uploaded image used as a memo reaction.
         InstanceSetting_Storage:
             type: object
             properties:

@@ -562,6 +562,9 @@
       "no-members-found": "沒有找到成員"
     },
     "memo": {
+      "upload-sticker": "上傳貼紙",
+      "sticker-invalid": "支援 PNG、JPEG、GIF 或 WebP，最大 64 KB、512 × 512 像素。",
+      "sticker-limit": "貼紙儲存已滿（最多 32 張，總大小 1 MB）。",
       "add-reaction": "新增表情回應",
       "configured-reactions": "已設定的表情回應",
       "content-length-limit": "內容長度限制（位元組）",
@@ -945,8 +948,6 @@
       "enabled": "啟用匿名表情",
       "public-required": "匿名互動需要實例允許公開存取，請前往",
       "open-dashboard": "開啟 Cloudflare 控制台",
-      "secret-configured": "已儲存金鑰。留空保留現有金鑰，輸入新金鑰可替換。",
-      "secret-description": "僅儲存在伺服器端，不會傳回瀏覽器。",
       "hostnames": "允許的網域",
       "hostnames-description": "每行一個網域，不含 https://、路徑或連接埠。應與 Cloudflare 中設定的網域一致。",
       "incomplete": "啟用前請填寫 Site Key、Secret Key 與至少一個網域。",

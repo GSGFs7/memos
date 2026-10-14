@@ -580,6 +580,9 @@
       "week-start-day-description": "캘린더 스타일 보기에서 표시되는 첫 번째 날짜를 제어합니다."
     },
     "memo": {
+      "upload-sticker": "Upload sticker",
+      "sticker-invalid": "Use PNG, JPEG, GIF or WebP, up to 64 KB and 512 × 512 pixels.",
+      "sticker-limit": "Sticker storage is full (32 images or 1 MB total).",
       "content-length-limit": "내용 길이 제한 (바이트)",
       "reactions": "반응",
       "label": "메모",
@@ -862,8 +865,6 @@
       "enabled": "Enable anonymous reactions",
       "public-required": "Anonymous reactions require public instance access. Enable it in",
       "open-dashboard": "Open Cloudflare dashboard",
-      "secret-configured": "A secret key is saved. Leave this blank to keep it; enter a new key to replace it.",
-      "secret-description": "Stored on the server and never returned to the browser.",
       "hostnames": "Allowed hostnames",
       "hostnames-description": "One hostname per line, without https://, paths or ports. Match the hostnames configured in Cloudflare.",
       "incomplete": "Fill in the site key, secret key and at least one hostname before enabling.",

@@ -1024,9 +1024,11 @@ type InstanceMemoRelatedSetting struct {
 	// enable_double_click_edit enables editing on double click.
 	EnableDoubleClickEdit bool `protobuf:"varint,4,opt,name=enable_double_click_edit,json=enableDoubleClickEdit,proto3" json:"enable_double_click_edit,omitempty"`
 	// reactions is the list of reactions.
-	Reactions     []string `protobuf:"bytes,7,rep,name=reactions,proto3" json:"reactions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Reactions []string `protobuf:"bytes,7,rep,name=reactions,proto3" json:"reactions,omitempty"`
+	// Sticker images keyed by their stable reaction type (sticker:<id>).
+	ReactionStickers map[string]*ReactionSticker `protobuf:"bytes,8,rep,name=reaction_stickers,json=reactionStickers,proto3" json:"reaction_stickers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *InstanceMemoRelatedSetting) Reset() {
@@ -1080,6 +1082,68 @@ func (x *InstanceMemoRelatedSetting) GetReactions() []string {
 	return nil
 }
 
+func (x *InstanceMemoRelatedSetting) GetReactionStickers() map[string]*ReactionSticker {
+	if x != nil {
+		return x.ReactionStickers
+	}
+	return nil
+}
+
+// An uploaded image used as a memo reaction.
+type ReactionSticker struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Display name of the sticker.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Base64 image data URI (PNG, JPEG, GIF or WebP).
+	Image         string `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReactionSticker) Reset() {
+	*x = ReactionSticker{}
+	mi := &file_store_instance_setting_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReactionSticker) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReactionSticker) ProtoMessage() {}
+
+func (x *ReactionSticker) ProtoReflect() protoreflect.Message {
+	mi := &file_store_instance_setting_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReactionSticker.ProtoReflect.Descriptor instead.
+func (*ReactionSticker) Descriptor() ([]byte, []int) {
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ReactionSticker) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ReactionSticker) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
 type InstanceTagMetadata struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Optional background color for the tag label.
@@ -1093,7 +1157,7 @@ type InstanceTagMetadata struct {
 
 func (x *InstanceTagMetadata) Reset() {
 	*x = InstanceTagMetadata{}
-	mi := &file_store_instance_setting_proto_msgTypes[8]
+	mi := &file_store_instance_setting_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1105,7 +1169,7 @@ func (x *InstanceTagMetadata) String() string {
 func (*InstanceTagMetadata) ProtoMessage() {}
 
 func (x *InstanceTagMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_store_instance_setting_proto_msgTypes[8]
+	mi := &file_store_instance_setting_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1118,7 +1182,7 @@ func (x *InstanceTagMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstanceTagMetadata.ProtoReflect.Descriptor instead.
 func (*InstanceTagMetadata) Descriptor() ([]byte, []int) {
-	return file_store_instance_setting_proto_rawDescGZIP(), []int{8}
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *InstanceTagMetadata) GetBackgroundColor() *color.Color {
@@ -1150,7 +1214,7 @@ type InstanceTagsSetting struct {
 
 func (x *InstanceTagsSetting) Reset() {
 	*x = InstanceTagsSetting{}
-	mi := &file_store_instance_setting_proto_msgTypes[9]
+	mi := &file_store_instance_setting_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1162,7 +1226,7 @@ func (x *InstanceTagsSetting) String() string {
 func (*InstanceTagsSetting) ProtoMessage() {}
 
 func (x *InstanceTagsSetting) ProtoReflect() protoreflect.Message {
-	mi := &file_store_instance_setting_proto_msgTypes[9]
+	mi := &file_store_instance_setting_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1175,7 +1239,7 @@ func (x *InstanceTagsSetting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstanceTagsSetting.ProtoReflect.Descriptor instead.
 func (*InstanceTagsSetting) Descriptor() ([]byte, []int) {
-	return file_store_instance_setting_proto_rawDescGZIP(), []int{9}
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *InstanceTagsSetting) GetTags() map[string]*InstanceTagMetadata {
@@ -1194,7 +1258,7 @@ type InstanceNotificationSetting struct {
 
 func (x *InstanceNotificationSetting) Reset() {
 	*x = InstanceNotificationSetting{}
-	mi := &file_store_instance_setting_proto_msgTypes[10]
+	mi := &file_store_instance_setting_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1206,7 +1270,7 @@ func (x *InstanceNotificationSetting) String() string {
 func (*InstanceNotificationSetting) ProtoMessage() {}
 
 func (x *InstanceNotificationSetting) ProtoReflect() protoreflect.Message {
-	mi := &file_store_instance_setting_proto_msgTypes[10]
+	mi := &file_store_instance_setting_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1219,7 +1283,7 @@ func (x *InstanceNotificationSetting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstanceNotificationSetting.ProtoReflect.Descriptor instead.
 func (*InstanceNotificationSetting) Descriptor() ([]byte, []int) {
-	return file_store_instance_setting_proto_rawDescGZIP(), []int{10}
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *InstanceNotificationSetting) GetEmail() *InstanceNotificationSetting_EmailSetting {
@@ -1242,7 +1306,7 @@ type InstanceAISetting struct {
 
 func (x *InstanceAISetting) Reset() {
 	*x = InstanceAISetting{}
-	mi := &file_store_instance_setting_proto_msgTypes[11]
+	mi := &file_store_instance_setting_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1254,7 +1318,7 @@ func (x *InstanceAISetting) String() string {
 func (*InstanceAISetting) ProtoMessage() {}
 
 func (x *InstanceAISetting) ProtoReflect() protoreflect.Message {
-	mi := &file_store_instance_setting_proto_msgTypes[11]
+	mi := &file_store_instance_setting_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1267,7 +1331,7 @@ func (x *InstanceAISetting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstanceAISetting.ProtoReflect.Descriptor instead.
 func (*InstanceAISetting) Descriptor() ([]byte, []int) {
-	return file_store_instance_setting_proto_rawDescGZIP(), []int{11}
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *InstanceAISetting) GetProviders() []*AIProviderConfig {
@@ -1298,7 +1362,7 @@ type AIProviderConfig struct {
 
 func (x *AIProviderConfig) Reset() {
 	*x = AIProviderConfig{}
-	mi := &file_store_instance_setting_proto_msgTypes[12]
+	mi := &file_store_instance_setting_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1310,7 +1374,7 @@ func (x *AIProviderConfig) String() string {
 func (*AIProviderConfig) ProtoMessage() {}
 
 func (x *AIProviderConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_store_instance_setting_proto_msgTypes[12]
+	mi := &file_store_instance_setting_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1323,7 +1387,7 @@ func (x *AIProviderConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIProviderConfig.ProtoReflect.Descriptor instead.
 func (*AIProviderConfig) Descriptor() ([]byte, []int) {
-	return file_store_instance_setting_proto_rawDescGZIP(), []int{12}
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AIProviderConfig) GetId() string {
@@ -1392,7 +1456,7 @@ type TranscriptionConfig struct {
 
 func (x *TranscriptionConfig) Reset() {
 	*x = TranscriptionConfig{}
-	mi := &file_store_instance_setting_proto_msgTypes[13]
+	mi := &file_store_instance_setting_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1404,7 +1468,7 @@ func (x *TranscriptionConfig) String() string {
 func (*TranscriptionConfig) ProtoMessage() {}
 
 func (x *TranscriptionConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_store_instance_setting_proto_msgTypes[13]
+	mi := &file_store_instance_setting_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1417,7 +1481,7 @@ func (x *TranscriptionConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TranscriptionConfig.ProtoReflect.Descriptor instead.
 func (*TranscriptionConfig) Descriptor() ([]byte, []int) {
-	return file_store_instance_setting_proto_rawDescGZIP(), []int{13}
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *TranscriptionConfig) GetProviderId() string {
@@ -1457,7 +1521,7 @@ type InstanceAccessSetting struct {
 
 func (x *InstanceAccessSetting) Reset() {
 	*x = InstanceAccessSetting{}
-	mi := &file_store_instance_setting_proto_msgTypes[14]
+	mi := &file_store_instance_setting_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1469,7 +1533,7 @@ func (x *InstanceAccessSetting) String() string {
 func (*InstanceAccessSetting) ProtoMessage() {}
 
 func (x *InstanceAccessSetting) ProtoReflect() protoreflect.Message {
-	mi := &file_store_instance_setting_proto_msgTypes[14]
+	mi := &file_store_instance_setting_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1482,7 +1546,7 @@ func (x *InstanceAccessSetting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstanceAccessSetting.ProtoReflect.Descriptor instead.
 func (*InstanceAccessSetting) Descriptor() ([]byte, []int) {
-	return file_store_instance_setting_proto_rawDescGZIP(), []int{14}
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *InstanceAccessSetting) GetAccessMode() InstanceAccessMode {
@@ -1505,7 +1569,7 @@ type InstanceAnonymousReactionSetting struct {
 
 func (x *InstanceAnonymousReactionSetting) Reset() {
 	*x = InstanceAnonymousReactionSetting{}
-	mi := &file_store_instance_setting_proto_msgTypes[15]
+	mi := &file_store_instance_setting_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1517,7 +1581,7 @@ func (x *InstanceAnonymousReactionSetting) String() string {
 func (*InstanceAnonymousReactionSetting) ProtoMessage() {}
 
 func (x *InstanceAnonymousReactionSetting) ProtoReflect() protoreflect.Message {
-	mi := &file_store_instance_setting_proto_msgTypes[15]
+	mi := &file_store_instance_setting_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1530,7 +1594,7 @@ func (x *InstanceAnonymousReactionSetting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstanceAnonymousReactionSetting.ProtoReflect.Descriptor instead.
 func (*InstanceAnonymousReactionSetting) Descriptor() ([]byte, []int) {
-	return file_store_instance_setting_proto_rawDescGZIP(), []int{15}
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *InstanceAnonymousReactionSetting) GetEnabled() bool {
@@ -1579,7 +1643,7 @@ type InstanceNotificationSetting_EmailSetting struct {
 
 func (x *InstanceNotificationSetting_EmailSetting) Reset() {
 	*x = InstanceNotificationSetting_EmailSetting{}
-	mi := &file_store_instance_setting_proto_msgTypes[17]
+	mi := &file_store_instance_setting_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1591,7 +1655,7 @@ func (x *InstanceNotificationSetting_EmailSetting) String() string {
 func (*InstanceNotificationSetting_EmailSetting) ProtoMessage() {}
 
 func (x *InstanceNotificationSetting_EmailSetting) ProtoReflect() protoreflect.Message {
-	mi := &file_store_instance_setting_proto_msgTypes[17]
+	mi := &file_store_instance_setting_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1604,7 +1668,7 @@ func (x *InstanceNotificationSetting_EmailSetting) ProtoReflect() protoreflect.M
 
 // Deprecated: Use InstanceNotificationSetting_EmailSetting.ProtoReflect.Descriptor instead.
 func (*InstanceNotificationSetting_EmailSetting) Descriptor() ([]byte, []int) {
-	return file_store_instance_setting_proto_rawDescGZIP(), []int{10, 0}
+	return file_store_instance_setting_proto_rawDescGZIP(), []int{11, 0}
 }
 
 func (x *InstanceNotificationSetting_EmailSetting) GetEnabled() bool {
@@ -1739,11 +1803,18 @@ const file_store_instance_setting_proto_rawDesc = "" +
 	"\x06region\x18\x04 \x01(\tR\x06region\x12\x16\n" +
 	"\x06bucket\x18\x05 \x01(\tR\x06bucket\x12$\n" +
 	"\x0euse_path_style\x18\x06 \x01(\bR\fusePathStyle\x127\n" +
-	"\x18insecure_skip_tls_verify\x18\a \x01(\bR\x15insecureSkipTlsVerify\"\xc5\x01\n" +
+	"\x18insecure_skip_tls_verify\x18\a \x01(\bR\x15insecureSkipTlsVerify\"\x94\x03\n" +
 	"\x1aInstanceMemoRelatedSetting\x120\n" +
 	"\x14content_length_limit\x18\x03 \x01(\x05R\x12contentLengthLimit\x127\n" +
 	"\x18enable_double_click_edit\x18\x04 \x01(\bR\x15enableDoubleClickEdit\x12\x1c\n" +
-	"\treactions\x18\a \x03(\tR\treactionsJ\x04\b\x02\x10\x03R\x18display_with_update_time\"w\n" +
+	"\treactions\x18\a \x03(\tR\treactions\x12j\n" +
+	"\x11reaction_stickers\x18\b \x03(\v2=.memos.store.InstanceMemoRelatedSetting.ReactionStickersEntryR\x10reactionStickers\x1aa\n" +
+	"\x15ReactionStickersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x122\n" +
+	"\x05value\x18\x02 \x01(\v2\x1c.memos.store.ReactionStickerR\x05value:\x028\x01J\x04\b\x02\x10\x03R\x18display_with_update_time\";\n" +
+	"\x0fReactionSticker\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05image\x18\x02 \x01(\tR\x05image\"w\n" +
 	"\x13InstanceTagMetadata\x12=\n" +
 	"\x10background_color\x18\x01 \x01(\v2\x12.google.type.ColorR\x0fbackgroundColor\x12!\n" +
 	"\fblur_content\x18\x02 \x01(\bR\vblurContent\"\xb0\x01\n" +
@@ -1833,7 +1904,7 @@ func file_store_instance_setting_proto_rawDescGZIP() []byte {
 }
 
 var file_store_instance_setting_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_store_instance_setting_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_store_instance_setting_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_store_instance_setting_proto_goTypes = []any{
 	(InstanceSettingKey)(0),                          // 0: memos.store.InstanceSettingKey
 	(StorageType)(0),                                 // 1: memos.store.StorageType
@@ -1848,17 +1919,19 @@ var file_store_instance_setting_proto_goTypes = []any{
 	(*InstanceStorageSetting)(nil),                   // 10: memos.store.InstanceStorageSetting
 	(*StorageS3Config)(nil),                          // 11: memos.store.StorageS3Config
 	(*InstanceMemoRelatedSetting)(nil),               // 12: memos.store.InstanceMemoRelatedSetting
-	(*InstanceTagMetadata)(nil),                      // 13: memos.store.InstanceTagMetadata
-	(*InstanceTagsSetting)(nil),                      // 14: memos.store.InstanceTagsSetting
-	(*InstanceNotificationSetting)(nil),              // 15: memos.store.InstanceNotificationSetting
-	(*InstanceAISetting)(nil),                        // 16: memos.store.InstanceAISetting
-	(*AIProviderConfig)(nil),                         // 17: memos.store.AIProviderConfig
-	(*TranscriptionConfig)(nil),                      // 18: memos.store.TranscriptionConfig
-	(*InstanceAccessSetting)(nil),                    // 19: memos.store.InstanceAccessSetting
-	(*InstanceAnonymousReactionSetting)(nil),         // 20: memos.store.InstanceAnonymousReactionSetting
-	nil,                                              // 21: memos.store.InstanceTagsSetting.TagsEntry
-	(*InstanceNotificationSetting_EmailSetting)(nil), // 22: memos.store.InstanceNotificationSetting.EmailSetting
-	(*color.Color)(nil),                              // 23: google.type.Color
+	(*ReactionSticker)(nil),                          // 13: memos.store.ReactionSticker
+	(*InstanceTagMetadata)(nil),                      // 14: memos.store.InstanceTagMetadata
+	(*InstanceTagsSetting)(nil),                      // 15: memos.store.InstanceTagsSetting
+	(*InstanceNotificationSetting)(nil),              // 16: memos.store.InstanceNotificationSetting
+	(*InstanceAISetting)(nil),                        // 17: memos.store.InstanceAISetting
+	(*AIProviderConfig)(nil),                         // 18: memos.store.AIProviderConfig
+	(*TranscriptionConfig)(nil),                      // 19: memos.store.TranscriptionConfig
+	(*InstanceAccessSetting)(nil),                    // 20: memos.store.InstanceAccessSetting
+	(*InstanceAnonymousReactionSetting)(nil),         // 21: memos.store.InstanceAnonymousReactionSetting
+	nil,                                              // 22: memos.store.InstanceMemoRelatedSetting.ReactionStickersEntry
+	nil,                                              // 23: memos.store.InstanceTagsSetting.TagsEntry
+	(*InstanceNotificationSetting_EmailSetting)(nil), // 24: memos.store.InstanceNotificationSetting.EmailSetting
+	(*color.Color)(nil),                              // 25: google.type.Color
 }
 var file_store_instance_setting_proto_depIdxs = []int32{
 	0,  // 0: memos.store.InstanceSetting.key:type_name -> memos.store.InstanceSettingKey
@@ -1866,30 +1939,32 @@ var file_store_instance_setting_proto_depIdxs = []int32{
 	7,  // 2: memos.store.InstanceSetting.general_setting:type_name -> memos.store.InstanceGeneralSetting
 	10, // 3: memos.store.InstanceSetting.storage_setting:type_name -> memos.store.InstanceStorageSetting
 	12, // 4: memos.store.InstanceSetting.memo_related_setting:type_name -> memos.store.InstanceMemoRelatedSetting
-	14, // 5: memos.store.InstanceSetting.tags_setting:type_name -> memos.store.InstanceTagsSetting
-	15, // 6: memos.store.InstanceSetting.notification_setting:type_name -> memos.store.InstanceNotificationSetting
-	16, // 7: memos.store.InstanceSetting.ai_setting:type_name -> memos.store.InstanceAISetting
-	19, // 8: memos.store.InstanceSetting.access_setting:type_name -> memos.store.InstanceAccessSetting
-	20, // 9: memos.store.InstanceSetting.anonymous_reaction_setting:type_name -> memos.store.InstanceAnonymousReactionSetting
+	15, // 5: memos.store.InstanceSetting.tags_setting:type_name -> memos.store.InstanceTagsSetting
+	16, // 6: memos.store.InstanceSetting.notification_setting:type_name -> memos.store.InstanceNotificationSetting
+	17, // 7: memos.store.InstanceSetting.ai_setting:type_name -> memos.store.InstanceAISetting
+	20, // 8: memos.store.InstanceSetting.access_setting:type_name -> memos.store.InstanceAccessSetting
+	21, // 9: memos.store.InstanceSetting.anonymous_reaction_setting:type_name -> memos.store.InstanceAnonymousReactionSetting
 	8,  // 10: memos.store.InstanceGeneralSetting.custom_profile:type_name -> memos.store.InstanceCustomProfile
 	1,  // 11: memos.store.Storage.type:type_name -> memos.store.StorageType
 	11, // 12: memos.store.Storage.s3_config:type_name -> memos.store.StorageS3Config
 	4,  // 13: memos.store.InstanceStorageSetting.storage_type:type_name -> memos.store.InstanceStorageSetting.StorageType
 	11, // 14: memos.store.InstanceStorageSetting.s3_config:type_name -> memos.store.StorageS3Config
 	9,  // 15: memos.store.InstanceStorageSetting.storages:type_name -> memos.store.Storage
-	23, // 16: memos.store.InstanceTagMetadata.background_color:type_name -> google.type.Color
-	21, // 17: memos.store.InstanceTagsSetting.tags:type_name -> memos.store.InstanceTagsSetting.TagsEntry
-	22, // 18: memos.store.InstanceNotificationSetting.email:type_name -> memos.store.InstanceNotificationSetting.EmailSetting
-	17, // 19: memos.store.InstanceAISetting.providers:type_name -> memos.store.AIProviderConfig
-	18, // 20: memos.store.InstanceAISetting.transcription:type_name -> memos.store.TranscriptionConfig
-	2,  // 21: memos.store.AIProviderConfig.type:type_name -> memos.store.AIProviderType
-	3,  // 22: memos.store.InstanceAccessSetting.access_mode:type_name -> memos.store.InstanceAccessMode
-	13, // 23: memos.store.InstanceTagsSetting.TagsEntry.value:type_name -> memos.store.InstanceTagMetadata
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	22, // 16: memos.store.InstanceMemoRelatedSetting.reaction_stickers:type_name -> memos.store.InstanceMemoRelatedSetting.ReactionStickersEntry
+	25, // 17: memos.store.InstanceTagMetadata.background_color:type_name -> google.type.Color
+	23, // 18: memos.store.InstanceTagsSetting.tags:type_name -> memos.store.InstanceTagsSetting.TagsEntry
+	24, // 19: memos.store.InstanceNotificationSetting.email:type_name -> memos.store.InstanceNotificationSetting.EmailSetting
+	18, // 20: memos.store.InstanceAISetting.providers:type_name -> memos.store.AIProviderConfig
+	19, // 21: memos.store.InstanceAISetting.transcription:type_name -> memos.store.TranscriptionConfig
+	2,  // 22: memos.store.AIProviderConfig.type:type_name -> memos.store.AIProviderType
+	3,  // 23: memos.store.InstanceAccessSetting.access_mode:type_name -> memos.store.InstanceAccessMode
+	13, // 24: memos.store.InstanceMemoRelatedSetting.ReactionStickersEntry.value:type_name -> memos.store.ReactionSticker
+	14, // 25: memos.store.InstanceTagsSetting.TagsEntry.value:type_name -> memos.store.InstanceTagMetadata
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_store_instance_setting_proto_init() }
@@ -1917,7 +1992,7 @@ func file_store_instance_setting_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_store_instance_setting_proto_rawDesc), len(file_store_instance_setting_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   18,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

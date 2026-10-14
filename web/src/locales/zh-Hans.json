@@ -653,6 +653,9 @@
       "allow-public-access": "允许公开访问"
     },
     "memo": {
+      "upload-sticker": "上传贴纸",
+      "sticker-invalid": "支持 PNG、JPEG、GIF 或 WebP，最大 64 KB、512 × 512 像素。",
+      "sticker-limit": "贴纸存储已满（最多 32 张，总大小 1 MB）。",
       "add-reaction": "添加表态",
       "configured-reactions": "已配置表态",
       "content-length-limit": "内容长度限制（字节）",
@@ -892,8 +895,6 @@
       "enabled": "启用匿名表情",
       "public-required": "匿名互动需要实例允许公开访问，请前往",
       "open-dashboard": "打开 Cloudflare 控制台",
-      "secret-configured": "已保存密钥。留空保留现有密钥，输入新密钥可替换。",
-      "secret-description": "仅保存在服务端，不会返回到浏览器。",
       "hostnames": "允许的域名",
       "hostnames-description": "每行一个域名，不带 https://、路径或端口。应与 Cloudflare 中配置的域名一致。",
       "incomplete": "启用前请填写 Site Key、Secret Key 和至少一个域名。",

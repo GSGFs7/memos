@@ -275,6 +275,16 @@ message InstanceSetting {
     bool enable_double_click_edit = 4;
     // reactions is the list of reactions.
     repeated string reactions = 7;
+    // Sticker images keyed by their stable reaction type (sticker:<id>).
+    map<string, ReactionSticker> reaction_stickers = 8;
+  }
+
+  // An uploaded image used as a memo reaction.
+  message ReactionSticker {
+    // Display name of the sticker.
+    string name = 1;
+    // Base64 image data URI (PNG, JPEG, GIF or WebP).
+    string image = 2;
   }
 
   // Metadata for a tag.

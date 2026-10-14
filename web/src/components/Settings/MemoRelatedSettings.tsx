@@ -1,8 +1,9 @@
 import { create } from "@bufbuild/protobuf";
 import { isEqual, uniq } from "lodash-es";
-import { CheckIcon, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { CheckIcon, ImagePlusIcon, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
+import ReactionContent from "@/components/MemoReactionListView/ReactionContent";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import {
   InstanceSetting_Key,
   InstanceSetting_MemoRelatedSetting,
   InstanceSetting_MemoRelatedSettingSchema,
+  InstanceSetting_ReactionStickerSchema,
   InstanceSettingSchema,
 } from "@/types/proto/api/v1/instance_service_pb";
 import { useTranslate } from "@/utils/i18n";
@@ -50,6 +52,8 @@ const MemoRelatedSettings = () => {
   const [memoRelatedSetting, setMemoRelatedSetting] = useState<InstanceSetting_MemoRelatedSetting>(originalSetting);
   const [contentLengthLimitInput, setContentLengthLimitInput] = useState(String(originalSetting.contentLengthLimit));
   const [editingReaction, setEditingReaction] = useState<string>("");
+  const stickerInput = useRef<HTMLInputElement>(null);
+  const [isAddingSticker, setIsAddingSticker] = useState(false);
 
   useEffect(() => {
     setMemoRelatedSetting(originalSetting);
@@ -92,7 +96,7 @@ const MemoRelatedSettings = () => {
   const memoChanged =
     !isEqual(memoRelatedSetting, originalSetting) || contentLengthLimitInput !== String(originalSetting.contentLengthLimit);
   const [isSaving, setIsSaving] = useState(false);
-  const canSave = !isLoading && !isError && !isPending && !isSaving && !incomplete && (memoChanged || anonymousChanged);
+  const canSave = !isLoading && !isError && !isPending && !isSaving && !isAddingSticker && !incomplete && (memoChanged || anonymousChanged);
 
   const updatePartialSetting = (partial: Partial<InstanceSetting_MemoRelatedSetting>) => {
     const newInstanceMemoRelatedSetting = create(InstanceSetting_MemoRelatedSettingSchema, {
@@ -110,6 +114,51 @@ const MemoRelatedSettings = () => {
 
     updatePartialSetting({ reactions: uniq([...memoRelatedSetting.reactions, trimmed]) });
     setEditingReaction("");
+  };
+
+  const addSticker = async (file: File) => {
+    setIsAddingSticker(true);
+    try {
+      if (!["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type) || file.size === 0 || file.size > 64 * 1024) {
+        throw new Error("invalid sticker");
+      }
+      const image = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      await new Promise<void>((resolve, reject) => {
+        const preview = new Image();
+        preview.onload = () => {
+          if (preview.naturalWidth > 512 || preview.naturalHeight > 512) reject(new Error("sticker dimensions"));
+          else resolve();
+        };
+        preview.onerror = () => reject(new Error("invalid sticker image"));
+        preview.src = image;
+      });
+      const stickers = memoRelatedSetting.reactionStickers;
+      const totalSize = Object.values(stickers).reduce((sum, sticker) => sum + atob(sticker.image.split(",")[1]).length, 0);
+      if (Object.keys(stickers).length >= 32 || totalSize + file.size > 1024 * 1024) {
+        toast.error(t("setting.memo.sticker-limit"));
+        return;
+      }
+      const key = `sticker:${crypto.randomUUID()}`;
+      setMemoRelatedSetting((current) =>
+        create(InstanceSetting_MemoRelatedSettingSchema, {
+          ...current,
+          reactions: [...current.reactions, key],
+          reactionStickers: {
+            ...current.reactionStickers,
+            [key]: create(InstanceSetting_ReactionStickerSchema, { name: file.name.slice(0, 32), image }),
+          },
+        }),
+      );
+    } catch {
+      toast.error(t("setting.memo.sticker-invalid"));
+    } finally {
+      setIsAddingSticker(false);
+    }
   };
 
   const handleUpdateSetting = async () => {
@@ -223,13 +272,35 @@ const MemoRelatedSettings = () => {
                 <CheckIcon className="w-4 h-4 mr-1.5" />
                 {t("setting.memo.add-reaction")}
               </Button>
+              <input
+                ref={stickerInput}
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                className="hidden"
+                aria-label={t("setting.memo.upload-sticker")}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) void addSticker(file);
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => stickerInput.current?.click()}
+                disabled={isAddingSticker || isSaving}
+                title={t("setting.memo.sticker-invalid")}
+              >
+                <ImagePlusIcon className="size-4 mr-1.5" />
+                {t("setting.memo.upload-sticker")}
+              </Button>
             </div>
           }
         >
           <div className="flex min-h-16 flex-wrap gap-2 px-3 py-3">
             {memoRelatedSetting.reactions.map((reactionType) => (
               <Badge key={reactionType} variant="outline" className="flex h-8 items-center gap-2 rounded-md px-2.5 font-normal">
-                <span>{reactionType}</span>
+                <ReactionContent reactionType={reactionType} stickers={memoRelatedSetting.reactionStickers} />
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -299,15 +370,7 @@ const MemoRelatedSettings = () => {
                           onChange={(event) => setAnonymousSetting({ ...anonymousSetting, siteKey: event.target.value })}
                         />
                       </SettingListItem>
-                      <SettingListItem
-                        vertical
-                        label={<label htmlFor="anonymous-reaction-secret-key">Secret Key</label>}
-                        description={
-                          originalAnonymousSetting.hasSecret
-                            ? t("setting.anonymous-reaction.secret-configured")
-                            : t("setting.anonymous-reaction.secret-description")
-                        }
-                      >
+                      <SettingListItem vertical label={<label htmlFor="anonymous-reaction-secret-key">Secret Key</label>}>
                         <Input
                           id="anonymous-reaction-secret-key"
                           type="password"

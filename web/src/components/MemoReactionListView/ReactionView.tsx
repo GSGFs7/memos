@@ -1,5 +1,6 @@
 import { FOCUS_VISIBLE_OUTLINE_CLASSES } from "@/components/ui/focus";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useInstance } from "@/contexts/InstanceContext";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
 import { State } from "@/types/proto/api/v1/common_pb";
@@ -7,6 +8,7 @@ import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import type { User } from "@/types/proto/api/v1/user_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import { formatReactionTooltip, useReactionActions } from "./hooks";
+import ReactionContent from "./ReactionContent";
 
 /**
  * A reaction is a token attached to the memo, not a control, so it takes the pill shape
@@ -37,6 +39,8 @@ const ReactionView = (props: Props) => {
   const { memo, reactionType, users, anonymousCount = 0 } = props;
   const t = useTranslate();
   const currentUser = useCurrentUser();
+  const { memoRelatedSetting } = useInstance();
+  const sticker = memoRelatedSetting.reactionStickers?.[reactionType];
 
   const readonly = memo.state === State.ARCHIVED;
 
@@ -46,7 +50,9 @@ const ReactionView = (props: Props) => {
   const isClickable = canReact && !readonly;
   const label = (
     <>
-      <span className="text-sm leading-none">{reactionType}</span>
+      <span className="text-sm leading-none">
+        <ReactionContent reactionType={reactionType} stickers={memoRelatedSetting.reactionStickers} className="size-5" />
+      </span>
       <span className="text-2xs tabular-nums text-muted-foreground/60">{users.length + anonymousCount}</span>
     </>
   );
@@ -73,7 +79,8 @@ const ReactionView = (props: Props) => {
             {label}
           </TooltipTrigger>
           <TooltipContent>
-            {users.length > 0 && <p>{formatReactionTooltip(users, reactionType)}</p>}
+            {sticker && <img src={sticker.image} alt={sticker.name} className="mx-auto my-1 size-40 object-contain" />}
+            {users.length > 0 && <p>{formatReactionTooltip(users, sticker?.name ?? reactionType)}</p>}
             {anonymousCount > 0 && <p>{t("memo.anonymous-reaction-count", { count: anonymousCount })}</p>}
           </TooltipContent>
         </Tooltip>

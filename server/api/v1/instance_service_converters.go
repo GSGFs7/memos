@@ -283,10 +283,15 @@ func convertInstanceMemoRelatedSettingFromStore(setting *storepb.InstanceMemoRel
 	if setting == nil {
 		return nil
 	}
+	stickers := make(map[string]*v1pb.InstanceSetting_ReactionSticker, len(setting.ReactionStickers))
+	for key, sticker := range setting.ReactionStickers {
+		stickers[key] = &v1pb.InstanceSetting_ReactionSticker{Name: sticker.GetName(), Image: sticker.GetImage()}
+	}
 	return &v1pb.InstanceSetting_MemoRelatedSetting{
 		ContentLengthLimit:    setting.ContentLengthLimit,
 		EnableDoubleClickEdit: setting.EnableDoubleClickEdit,
 		Reactions:             setting.Reactions,
+		ReactionStickers:      stickers,
 	}
 }
 
@@ -294,10 +299,15 @@ func convertInstanceMemoRelatedSettingToStore(setting *v1pb.InstanceSetting_Memo
 	if setting == nil {
 		return nil
 	}
+	stickers := make(map[string]*storepb.ReactionSticker, len(setting.ReactionStickers))
+	for key, sticker := range setting.ReactionStickers {
+		stickers[key] = &storepb.ReactionSticker{Name: sticker.GetName(), Image: sticker.GetImage()}
+	}
 	return &storepb.InstanceMemoRelatedSetting{
 		ContentLengthLimit:    setting.ContentLengthLimit,
 		EnableDoubleClickEdit: setting.EnableDoubleClickEdit,
 		Reactions:             setting.Reactions,
+		ReactionStickers:      stickers,
 	}
 }
 

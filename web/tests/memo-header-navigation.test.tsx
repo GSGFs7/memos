@@ -107,9 +107,14 @@ describe("MemoHeader navigation", () => {
     const actionRail = actions.closest('[data-slot="memo-header-actions"]');
 
     expect(actionRail).toHaveClass("items-center", "gap-1");
-    // The header shows the picker only while the card is engaged or the picker is open, and its
-    // trigger is the same 24px quiet square as the other header actions.
-    expect(reaction.parentElement).toHaveClass("sm:group-focus-within:flex", "sm:has-[[data-popup-open]]:flex");
+    // Retain the anchor's geometry when hiding it so the picker's exit animation cannot jump to (0, 0).
+    expect(reaction.parentElement).toHaveClass(
+      "flex",
+      "sm:invisible",
+      "sm:group-focus-within:visible",
+      "sm:has-[[data-popup-open]]:visible",
+    );
+    expect(reaction.parentElement).not.toHaveClass("sm:hidden");
     expect(reaction).toHaveClass("size-6", "rounded-md", "text-muted-foreground/70");
     expect(reaction.className).not.toMatch(/border-none|rounded-full|ring-/);
   });

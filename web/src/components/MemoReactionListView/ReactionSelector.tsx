@@ -8,6 +8,7 @@ import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import { useReactionActions } from "./hooks";
 import ReactionContent from "./ReactionContent";
+import ReactionPreview from "./ReactionPreview";
 import { REACTION_ADD_CLASSES } from "./ReactionView";
 
 interface Props {
@@ -46,18 +47,19 @@ const ReactionSelector = ({ memo, trigger }: Props) => {
         <PopoverContent align="center" className="max-w-[90vw] sm:max-w-md">
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1 max-h-64 overflow-y-auto">
             {memoRelatedSetting.reactions.map((reactionType) => (
-              <button
-                type="button"
-                key={reactionType}
-                className={cn(
-                  "inline-flex min-h-9 min-w-9 items-center justify-center text-base cursor-pointer rounded px-1 text-muted-foreground hover:opacity-80 transition-colors",
-                  hasReacted(reactionType) && "bg-secondary text-secondary-foreground",
-                )}
-                disabled={pending || (!currentUser && hasReacted(reactionType))}
-                onClick={() => handleReactionClick(reactionType)}
-              >
-                <ReactionContent reactionType={reactionType} stickers={memoRelatedSetting.reactionStickers} className="size-8" />
-              </button>
+              <ReactionPreview key={reactionType} reactionType={reactionType}>
+                <button
+                  type="button"
+                  className={cn(
+                    "inline-flex min-h-9 min-w-9 items-center justify-center text-base cursor-pointer rounded px-1 text-muted-foreground hover:opacity-80 transition-colors",
+                    hasReacted(reactionType) && "bg-secondary text-secondary-foreground",
+                  )}
+                  disabled={pending || (!currentUser && hasReacted(reactionType))}
+                  onClick={() => handleReactionClick(reactionType)}
+                >
+                  <ReactionContent reactionType={reactionType} stickers={memoRelatedSetting.reactionStickers} className="size-8" />
+                </button>
+              </ReactionPreview>
             ))}
           </div>
         </PopoverContent>

@@ -319,7 +319,7 @@
     "parent-memo": "Memorando pai",
     "view-options": "Opções de visualização",
     "anonymous-reaction-title": "Add an anonymous reaction",
-    "anonymous-reaction-count": "{{count}} anonymous reactions",
+    "reaction-count": "{{count}} reactions",
     "anonymous-reaction-error": "Could not add your reaction. Please verify again and retry."
   },
   "message": {

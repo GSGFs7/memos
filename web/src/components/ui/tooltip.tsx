@@ -18,8 +18,9 @@ TooltipTrigger.displayName = "TooltipTrigger";
 
 const TooltipContent = React.forwardRef<
   HTMLDivElement,
-  TooltipPrimitive.Popup.Props & Pick<TooltipPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">
->(({ className, align, alignOffset, side, sideOffset = 0, children, ...props }, ref) => {
+  TooltipPrimitive.Popup.Props &
+    Pick<TooltipPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset"> & { arrowClassName?: string }
+>(({ className, arrowClassName, align, alignOffset, side, sideOffset = 0, children, ...props }, ref) => {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Positioner
@@ -44,6 +45,7 @@ const TooltipContent = React.forwardRef<
             className={cn(
               "pointer-events-none bg-primary z-tooltip size-2.5 rotate-45 rounded-[2px]",
               "data-[side=top]:bottom-[-5px] data-[side=bottom]:top-[-5px] data-[side=left]:right-[-5px] data-[side=right]:left-[-5px]",
+              arrowClassName,
             )}
           />
         </TooltipPrimitive.Popup>

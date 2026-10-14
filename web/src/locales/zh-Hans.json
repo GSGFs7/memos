@@ -344,7 +344,7 @@
       "history": "现有表态会保留在此备忘录上。评论和关联的备忘录仍遵循各自的访问规则。"
     },
     "anonymous-reaction-title": "匿名表态",
-    "anonymous-reaction-count": "{{count}} 次匿名表态",
+    "reaction-count": "{{count}} 次表态",
     "anonymous-reaction-error": "添加失败，请重新验证后再试。"
   },
   "message": {

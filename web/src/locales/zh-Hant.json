@@ -397,7 +397,7 @@
     "on-this-memo": "在此備忘錄中",
     "parent-memo": "原始備忘錄",
     "anonymous-reaction-title": "匿名表態",
-    "anonymous-reaction-count": "{{count}} 次匿名表態",
+    "reaction-count": "{{count}} 次表態",
     "anonymous-reaction-error": "新增失敗，請重新驗證後再試。"
   },
   "message": {

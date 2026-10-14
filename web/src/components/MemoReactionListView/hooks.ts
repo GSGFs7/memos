@@ -156,12 +156,3 @@ export const useReactionActions = ({ memo, onComplete }: UseReactionActionsOptio
 
   return { hasReacted, handleReactionClick, canReact, pending, challengeDialog };
 };
-
-export const formatReactionTooltip = (users: User[], reactionType: string): string => {
-  if (users.length === 0) return "";
-  const formatUserName = (user: User) => user.displayName || user.username;
-  if (users.length < 5) {
-    return `${users.map(formatUserName).join(", ")} reacted with ${reactionType.toLowerCase()}`;
-  }
-  return `${users.slice(0, 4).map(formatUserName).join(", ")} and ${users.length - 4} more reacted with ${reactionType.toLowerCase()}`;
-};

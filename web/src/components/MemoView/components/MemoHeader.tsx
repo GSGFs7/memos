@@ -85,8 +85,8 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ timeDisplay = "relative", showC
 
       <div data-slot="memo-header-actions" className="flex shrink-0 select-none flex-row items-center justify-end gap-1">
         {!isArchived && (
-          // On desktop the picker's trigger shows only while the card is engaged or the picker is open.
-          <span className="flex sm:hidden sm:group-hover:flex sm:group-focus-within:flex sm:has-[[data-popup-open]]:flex">
+          // Keep the hidden trigger's geometry so the picker stays anchored during its exit animation.
+          <span className="flex sm:invisible sm:group-hover:visible sm:group-focus-within:visible sm:has-[[data-popup-open]]:visible">
             <ReactionSelector memo={memo} trigger={<Button variant="quiet" size="icon-sm" />} />
           </span>
         )}

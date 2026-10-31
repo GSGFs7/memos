@@ -2,18 +2,20 @@ import { type ReactElement, useEffect, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useInstance } from "@/contexts/InstanceContext";
 import { cn } from "@/lib/utils";
+import type { InstanceSetting_ReactionSticker } from "@/types/proto/api/v1/instance_service_pb";
 import { useTranslate } from "@/utils/i18n";
 
 interface Props {
   reactionType: string;
+  stickers?: Record<string, InstanceSetting_ReactionSticker>;
   count?: number;
   children: ReactElement;
 }
 
-export default function ReactionPreview({ reactionType, count, children }: Props) {
+export default function ReactionPreview({ reactionType, stickers, count, children }: Props) {
   const t = useTranslate();
   const { memoRelatedSetting } = useInstance();
-  const sticker = memoRelatedSetting.reactionStickers?.[reactionType];
+  const sticker = (stickers ?? memoRelatedSetting.reactionStickers)?.[reactionType];
   const [previewOpen, setPreviewOpen] = useState(false);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const press = useRef<{ pointerId: number; x: number; y: number } | null>(null);

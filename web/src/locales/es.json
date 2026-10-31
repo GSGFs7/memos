@@ -442,8 +442,8 @@
     },
     "memo": {
       "upload-sticker": "Upload sticker",
-      "sticker-invalid": "Use PNG, JPEG, GIF or WebP, up to 64 KB and 512 × 512 pixels.",
-      "sticker-limit": "Sticker storage is full (32 images or 1 MB total).",
+      "sticker-invalid": "Use PNG, JPEG, GIF or WebP, up to 128 KB and 512 × 512 pixels.",
+      "sticker-exists": "This sticker already exists.",
       "content-length-limit": "Límite de longitud de contenido (Bytes)",
       "label": "Memo",
       "reactions": "Reacciones",

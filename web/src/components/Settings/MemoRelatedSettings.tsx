@@ -4,6 +4,7 @@ import { CheckIcon, ImagePlusIcon, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import ReactionContent from "@/components/MemoReactionListView/ReactionContent";
+import ReactionPreview from "@/components/MemoReactionListView/ReactionPreview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useInstance } from "@/contexts/InstanceContext";
 import { useInstanceSetting, useUpdateInstanceSetting } from "@/hooks/useInstanceQueries";
 import { handleError } from "@/lib/error";
+import { cn } from "@/lib/utils";
 import {
   InstanceAccessMode,
   InstanceSetting_AnonymousReactionSettingSchema,
@@ -54,6 +56,8 @@ const MemoRelatedSettings = () => {
   const [editingReaction, setEditingReaction] = useState<string>("");
   const stickerInput = useRef<HTMLInputElement>(null);
   const [isAddingSticker, setIsAddingSticker] = useState(false);
+  const [isDraggingSticker, setIsDraggingSticker] = useState(false);
+  const stickerDragDepth = useRef(0);
 
   useEffect(() => {
     setMemoRelatedSetting(originalSetting);
@@ -117,9 +121,11 @@ const MemoRelatedSettings = () => {
   };
 
   const addSticker = async (file: File) => {
+    if (isAddingSticker || isSaving) return;
+
     setIsAddingSticker(true);
     try {
-      if (!["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type) || file.size === 0 || file.size > 64 * 1024) {
+      if (!["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type) || file.size === 0 || file.size > 128 * 1024) {
         throw new Error("invalid sticker");
       }
       const image = await new Promise<string>((resolve, reject) => {
@@ -138,9 +144,8 @@ const MemoRelatedSettings = () => {
         preview.src = image;
       });
       const stickers = memoRelatedSetting.reactionStickers;
-      const totalSize = Object.values(stickers).reduce((sum, sticker) => sum + atob(sticker.image.split(",")[1]).length, 0);
-      if (Object.keys(stickers).length >= 32 || totalSize + file.size > 1024 * 1024) {
-        toast.error(t("setting.memo.sticker-limit"));
+      if (memoRelatedSetting.reactions.some((reactionType) => stickers[reactionType]?.image === image)) {
+        toast.error(t("setting.memo.sticker-exists"));
         return;
       }
       const key = `sticker:${crypto.randomUUID()}`;
@@ -250,69 +255,113 @@ const MemoRelatedSettings = () => {
       </SettingGroup>
 
       <SettingGroup title={t("setting.memo.reactions")} description={t("setting.memo.reactions-description")} showSeparator>
-        <SettingPanel
-          header={
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium text-muted-foreground">{t("setting.memo.configured-reactions")}</span>
-              <Badge variant="outline" className="rounded-md px-2 py-0 text-xs font-normal">
-                {memoRelatedSetting.reactions.length}
-              </Badge>
-            </div>
-          }
-          footer={
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Input
-                className="h-8 max-w-48 font-mono"
-                placeholder={t("setting.memo.reaction-placeholder")}
-                value={editingReaction}
-                onChange={(event) => setEditingReaction(event.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && upsertReaction()}
-              />
-              <Button variant="outline" size="sm" onClick={upsertReaction} disabled={!editingReaction.trim()}>
-                <CheckIcon className="w-4 h-4 mr-1.5" />
-                {t("setting.memo.add-reaction")}
-              </Button>
-              <input
-                ref={stickerInput}
-                type="file"
-                accept="image/png,image/jpeg,image/gif,image/webp"
-                className="hidden"
-                aria-label={t("setting.memo.upload-sticker")}
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) void addSticker(file);
-                }}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => stickerInput.current?.click()}
-                disabled={isAddingSticker || isSaving}
-                title={t("setting.memo.sticker-invalid")}
-              >
-                <ImagePlusIcon className="size-4 mr-1.5" />
-                {t("setting.memo.upload-sticker")}
-              </Button>
-            </div>
-          }
+        <div
+          role="region"
+          aria-label={t("setting.memo.configured-reactions")}
+          className={cn("relative rounded-lg", isDraggingSticker && "ring-2 ring-primary")}
+          onDragEnter={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            stickerDragDepth.current += 1;
+            if (!isAddingSticker && !isSaving) setIsDraggingSticker(true);
+          }}
+          onDragOver={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = isAddingSticker || isSaving ? "none" : "copy";
+          }}
+          onDragLeave={() => {
+            stickerDragDepth.current = Math.max(0, stickerDragDepth.current - 1);
+            if (stickerDragDepth.current === 0) setIsDraggingSticker(false);
+          }}
+          onDrop={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            event.stopPropagation();
+            stickerDragDepth.current = 0;
+            setIsDraggingSticker(false);
+            const file = event.dataTransfer.files[0];
+            if (file) void addSticker(file);
+          }}
         >
-          <div className="flex min-h-16 flex-wrap gap-2 px-3 py-3">
-            {memoRelatedSetting.reactions.map((reactionType) => (
-              <Badge key={reactionType} variant="outline" className="flex h-8 items-center gap-2 rounded-md px-2.5 font-normal">
-                <ReactionContent reactionType={reactionType} stickers={memoRelatedSetting.reactionStickers} />
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => updatePartialSetting({ reactions: memoRelatedSetting.reactions.filter((r) => r !== reactionType) })}
-                  aria-label={t("setting.memo.remove-reaction")}
-                >
-                  <X className="size-3.5" />
+          <SettingPanel
+            header={
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-muted-foreground">{t("setting.memo.configured-reactions")}</span>
+                <Badge variant="outline" className="rounded-md px-2 py-0 text-xs font-normal">
+                  {memoRelatedSetting.reactions.length}
+                </Badge>
+              </div>
+            }
+            footer={
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Input
+                  className="h-8 max-w-48 font-mono"
+                  placeholder={t("setting.memo.reaction-placeholder")}
+                  value={editingReaction}
+                  onChange={(event) => setEditingReaction(event.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && upsertReaction()}
+                />
+                <Button variant="outline" size="sm" onClick={upsertReaction} disabled={!editingReaction.trim()}>
+                  <CheckIcon className="w-4 h-4 mr-1.5" />
+                  {t("setting.memo.add-reaction")}
                 </Button>
-              </Badge>
-            ))}
-          </div>
-        </SettingPanel>
+                <input
+                  ref={stickerInput}
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  className="hidden"
+                  aria-label={t("setting.memo.upload-sticker")}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) void addSticker(file);
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => stickerInput.current?.click()}
+                  disabled={isAddingSticker || isSaving}
+                  title={t("setting.memo.sticker-invalid")}
+                >
+                  <ImagePlusIcon className="size-4 mr-1.5" />
+                  {t("setting.memo.upload-sticker")}
+                </Button>
+              </div>
+            }
+          >
+            <div className="flex min-h-16 flex-wrap gap-2 px-3 py-3">
+              {memoRelatedSetting.reactions.map((reactionType) => (
+                <Badge key={reactionType} variant="outline" className="flex h-8 items-center gap-2 rounded-md px-2.5 font-normal">
+                  <ReactionPreview reactionType={reactionType} stickers={memoRelatedSetting.reactionStickers}>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-sm"
+                      aria-label={memoRelatedSetting.reactionStickers[reactionType]?.name ?? reactionType}
+                    >
+                      <ReactionContent reactionType={reactionType} stickers={memoRelatedSetting.reactionStickers} />
+                    </button>
+                  </ReactionPreview>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => updatePartialSetting({ reactions: memoRelatedSetting.reactions.filter((r) => r !== reactionType) })}
+                    aria-label={t("setting.memo.remove-reaction")}
+                  >
+                    <X className="size-3.5" />
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+          </SettingPanel>
+          {isDraggingSticker && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 rounded-lg bg-background/90 text-primary">
+              <ImagePlusIcon className="size-5" />
+              <span className="text-sm font-medium">{t("setting.memo.upload-sticker")}</span>
+            </div>
+          )}
+        </div>
         {isLoading && (
           <p className="text-sm text-muted-foreground" role="status">
             {t("setting.anonymous-reaction.loading")}

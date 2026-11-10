@@ -1,8 +1,8 @@
 {
   "image": "ghcr.io/gsgfs7/memos",
   "tag": "personal",
-  "digest": "sha256:22d8b0b544cb8a2561e85c5256bb9d4c97129469bd215666d6e46e6e4d6ee927",
-  "sourceCommit": "ac83546b66083ed39dd7a42786d80e2901797041",
+  "digest": "sha256:af35afe726540256e9404d8042dcb6aed9af38346bad579edad5cff03c9cac53",
+  "sourceCommit": "ef0c9cb7dbad588337f8af4bacd44409737b3449",
   "platforms": [
     "linux/amd64",
     "linux/arm64"

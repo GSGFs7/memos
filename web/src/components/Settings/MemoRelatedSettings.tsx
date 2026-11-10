@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useInstance } from "@/contexts/InstanceContext";
+import { isFieldManaged, useManagedResource } from "@/hooks/useConfigurationQueries";
 import { useInstanceSetting, useUpdateInstanceSetting } from "@/hooks/useInstanceQueries";
 import { handleError } from "@/lib/error";
 import { cn } from "@/lib/utils";
@@ -22,37 +23,24 @@ import {
   InstanceSetting_MemoRelatedSettingSchema,
   InstanceSetting_ReactionStickerSchema,
   InstanceSettingSchema,
-} from "@/types/proto/api/v1/instance_service_pb";
+} from "@/types/proto/api/instance_service_pb";
 import { useTranslate } from "@/utils/i18n";
+import ManagedByConfigurationChip from "./ManagedByConfigurationChip";
 import SettingGroup from "./SettingGroup";
 import { SettingList, SettingListItem, SettingPanel } from "./SettingList";
 import SettingSection from "./SettingSection";
 import useInstanceSettingUpdater, { buildInstanceSettingName } from "./useInstanceSettingUpdater";
-
-const MIN_CONTENT_LENGTH_LIMIT = 8 * 1024;
-const MAX_CONTENT_LENGTH_LIMIT = 2_147_483_647;
-
-const parseContentLengthLimit = (value: string): number | undefined => {
-  if (value.trim() === "") {
-    return undefined;
-  }
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
-    return undefined;
-  }
-  if (parsed < MIN_CONTENT_LENGTH_LIMIT || parsed > MAX_CONTENT_LENGTH_LIMIT) {
-    return undefined;
-  }
-  return parsed;
-};
 
 const MemoRelatedSettings = () => {
   const t = useTranslate();
   const saveInstanceSetting = useInstanceSettingUpdater();
   const { memoRelatedSetting: originalSetting, profile } = useInstance();
   const [memoRelatedSetting, setMemoRelatedSetting] = useState<InstanceSetting_MemoRelatedSetting>(originalSetting);
-  const [contentLengthLimitInput, setContentLengthLimitInput] = useState(String(originalSetting.contentLengthLimit));
+  const managed = useManagedResource(buildInstanceSettingName(InstanceSetting_Key.MEMO_RELATED));
+  const reactionsLocked =
+    isFieldManaged(managed, "memoRelatedSetting.reactions") || isFieldManaged(managed, "memoRelatedSetting.reactionStickers");
+  const anonymousManaged = useManagedResource(buildInstanceSettingName(InstanceSetting_Key.ANONYMOUS_REACTION));
+  const anonymousLocked = Boolean(anonymousManaged);
   const [editingReaction, setEditingReaction] = useState<string>("");
   const stickerInput = useRef<HTMLInputElement>(null);
   const [isAddingSticker, setIsAddingSticker] = useState(false);
@@ -61,7 +49,6 @@ const MemoRelatedSettings = () => {
 
   useEffect(() => {
     setMemoRelatedSetting(originalSetting);
-    setContentLengthLimitInput(String(originalSetting.contentLengthLimit));
   }, [originalSetting]);
 
   const { data, isLoading, isError, refetch } = useInstanceSetting(InstanceSetting_Key.ANONYMOUS_REACTION);
@@ -97,8 +84,7 @@ const MemoRelatedSettings = () => {
   const incomplete =
     updatedAnonymousSetting.enabled && (!updatedAnonymousSetting.siteKey || !hasSecret || updatedAnonymousSetting.hostnames.length === 0);
   const anonymousChanged = !isEqual(updatedAnonymousSetting, originalAnonymousSetting);
-  const memoChanged =
-    !isEqual(memoRelatedSetting, originalSetting) || contentLengthLimitInput !== String(originalSetting.contentLengthLimit);
+  const memoChanged = !isEqual(memoRelatedSetting, originalSetting);
   const [isSaving, setIsSaving] = useState(false);
   const canSave = !isLoading && !isError && !isPending && !isSaving && !isAddingSticker && !incomplete && (memoChanged || anonymousChanged);
 
@@ -111,6 +97,7 @@ const MemoRelatedSettings = () => {
   };
 
   const upsertReaction = () => {
+    if (reactionsLocked) return;
     const trimmed = editingReaction.trim();
     if (!trimmed) {
       return;
@@ -121,7 +108,7 @@ const MemoRelatedSettings = () => {
   };
 
   const addSticker = async (file: File) => {
-    if (isAddingSticker || isSaving) return;
+    if (reactionsLocked || isAddingSticker || isSaving) return;
 
     setIsAddingSticker(true);
     try {
@@ -168,17 +155,6 @@ const MemoRelatedSettings = () => {
 
   const handleUpdateSetting = async () => {
     if (!canSave) return;
-    const contentLengthLimit = parseContentLengthLimit(contentLengthLimitInput);
-    if (contentLengthLimit === undefined) {
-      toast.error(
-        t("setting.memo.content-length-limit-error", {
-          min: MIN_CONTENT_LENGTH_LIMIT,
-          max: MAX_CONTENT_LENGTH_LIMIT,
-        }),
-      );
-      return;
-    }
-
     if (memoRelatedSetting.reactions.length === 0) {
       toast.error(t("setting.memo.reactions-required"));
       return;
@@ -186,7 +162,6 @@ const MemoRelatedSettings = () => {
 
     const updatedMemoRelatedSetting = create(InstanceSetting_MemoRelatedSettingSchema, {
       ...memoRelatedSetting,
-      contentLengthLimit,
     });
 
     setIsSaving(true);
@@ -221,40 +196,11 @@ const MemoRelatedSettings = () => {
 
   return (
     <SettingSection title={t("setting.memo.label")}>
-      <SettingGroup title={t("setting.memo.editing-title")} description={t("setting.memo.editing-description")}>
-        <SettingList>
-          <SettingListItem
-            label={t("setting.system.enable-double-click-to-edit")}
-            description={t("setting.memo.double-click-edit-description")}
-          >
-            <Switch
-              checked={memoRelatedSetting.enableDoubleClickEdit}
-              onCheckedChange={(checked) => updatePartialSetting({ enableDoubleClickEdit: checked })}
-            />
-          </SettingListItem>
-
-          <SettingListItem label={t("setting.memo.content-length-limit")} description={t("setting.memo.content-length-limit-description")}>
-            <div className="flex items-center gap-2">
-              <Input
-                className="w-28 font-mono"
-                type="number"
-                min={MIN_CONTENT_LENGTH_LIMIT}
-                max={MAX_CONTENT_LENGTH_LIMIT}
-                step={1}
-                required
-                aria-label={t("setting.memo.content-length-limit")}
-                value={contentLengthLimitInput}
-                onChange={(event) => setContentLengthLimitInput(event.target.value)}
-              />
-              <span className="text-xs text-muted-foreground">
-                {t("setting.memo.content-length-limit-minimum", { min: MIN_CONTENT_LENGTH_LIMIT })}
-              </span>
-            </div>
-          </SettingListItem>
-        </SettingList>
-      </SettingGroup>
-
-      <SettingGroup title={t("setting.memo.reactions")} description={t("setting.memo.reactions-description")} showSeparator>
+      <SettingGroup
+        title={t("setting.memo.reactions")}
+        description={t("setting.memo.reactions-description")}
+        actions={reactionsLocked ? <ManagedByConfigurationChip resource={managed} /> : undefined}
+      >
         <div
           role="region"
           aria-label={t("setting.memo.configured-reactions")}
@@ -263,12 +209,12 @@ const MemoRelatedSettings = () => {
             if (!event.dataTransfer.types.includes("Files")) return;
             event.preventDefault();
             stickerDragDepth.current += 1;
-            if (!isAddingSticker && !isSaving) setIsDraggingSticker(true);
+            if (!reactionsLocked && !isAddingSticker && !isSaving) setIsDraggingSticker(true);
           }}
           onDragOver={(event) => {
             if (!event.dataTransfer.types.includes("Files")) return;
             event.preventDefault();
-            event.dataTransfer.dropEffect = isAddingSticker || isSaving ? "none" : "copy";
+            event.dataTransfer.dropEffect = reactionsLocked || isAddingSticker || isSaving ? "none" : "copy";
           }}
           onDragLeave={() => {
             stickerDragDepth.current = Math.max(0, stickerDragDepth.current - 1);
@@ -281,7 +227,7 @@ const MemoRelatedSettings = () => {
             stickerDragDepth.current = 0;
             setIsDraggingSticker(false);
             const file = event.dataTransfer.files[0];
-            if (file) void addSticker(file);
+            if (file && !reactionsLocked) void addSticker(file);
           }}
         >
           <SettingPanel
@@ -298,31 +244,33 @@ const MemoRelatedSettings = () => {
                 <Input
                   className="h-8 max-w-48 font-mono"
                   placeholder={t("setting.memo.reaction-placeholder")}
+                  disabled={reactionsLocked}
                   value={editingReaction}
                   onChange={(event) => setEditingReaction(event.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && upsertReaction()}
                 />
-                <Button variant="outline" size="sm" onClick={upsertReaction} disabled={!editingReaction.trim()}>
+                <Button variant="outline" size="sm" onClick={upsertReaction} disabled={reactionsLocked || !editingReaction.trim()}>
                   <CheckIcon className="w-4 h-4 mr-1.5" />
                   {t("setting.memo.add-reaction")}
                 </Button>
                 <input
                   ref={stickerInput}
                   type="file"
+                  disabled={reactionsLocked || isAddingSticker || isSaving}
                   accept="image/png,image/jpeg,image/gif,image/webp"
                   className="hidden"
                   aria-label={t("setting.memo.upload-sticker")}
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     event.target.value = "";
-                    if (file) void addSticker(file);
+                    if (file && !reactionsLocked) void addSticker(file);
                   }}
                 />
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => stickerInput.current?.click()}
-                  disabled={isAddingSticker || isSaving}
+                  disabled={reactionsLocked || isAddingSticker || isSaving}
                   title={t("setting.memo.sticker-invalid")}
                 >
                   <ImagePlusIcon className="size-4 mr-1.5" />
@@ -346,6 +294,7 @@ const MemoRelatedSettings = () => {
                   <Button
                     variant="ghost"
                     size="icon-sm"
+                    disabled={reactionsLocked}
                     onClick={() => updatePartialSetting({ reactions: memoRelatedSetting.reactions.filter((r) => r !== reactionType) })}
                     aria-label={t("setting.memo.remove-reaction")}
                   >
@@ -362,6 +311,7 @@ const MemoRelatedSettings = () => {
             </div>
           )}
         </div>
+        {anonymousLocked && <ManagedByConfigurationChip resource={anonymousManaged} />}
         {isLoading && (
           <p className="text-sm text-muted-foreground" role="status">
             {t("setting.anonymous-reaction.loading")}
@@ -382,7 +332,7 @@ const MemoRelatedSettings = () => {
                 <Switch
                   id="anonymous-reaction-enabled"
                   checked={anonymousSetting.enabled}
-                  disabled={isPending}
+                  disabled={anonymousLocked || isPending}
                   onCheckedChange={(enabled) => setAnonymousSetting({ ...anonymousSetting, enabled })}
                 />
               </SettingListItem>
@@ -414,7 +364,7 @@ const MemoRelatedSettings = () => {
                         <Input
                           id="anonymous-reaction-site-key"
                           value={anonymousSetting.siteKey}
-                          disabled={isPending}
+                          disabled={anonymousLocked || isPending}
                           maxLength={256}
                           onChange={(event) => setAnonymousSetting({ ...anonymousSetting, siteKey: event.target.value })}
                         />
@@ -425,7 +375,7 @@ const MemoRelatedSettings = () => {
                           type="password"
                           autoComplete="new-password"
                           value={anonymousSetting.secretKey}
-                          disabled={isPending}
+                          disabled={anonymousLocked || isPending}
                           maxLength={256}
                           onChange={(event) => setAnonymousSetting({ ...anonymousSetting, secretKey: event.target.value })}
                         />
@@ -438,7 +388,7 @@ const MemoRelatedSettings = () => {
                         <Textarea
                           id="anonymous-reaction-hostnames"
                           value={hostnames}
-                          disabled={isPending}
+                          disabled={anonymousLocked || isPending}
                           placeholder="memos.example.com"
                           rows={3}
                           onChange={(event) => setHostnames(event.target.value)}

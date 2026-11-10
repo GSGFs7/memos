@@ -1,0 +1,245 @@
+package api
+
+import (
+	"context"
+	stderrors "errors"
+	"log/slog"
+	"slices"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
+
+	"github.com/usememos/memos/core/access"
+	"github.com/usememos/memos/internal/clientip"
+	"github.com/usememos/memos/internal/ratelimit"
+	apipb "github.com/usememos/memos/proto/gen/api"
+	storepb "github.com/usememos/memos/proto/gen/store"
+	"github.com/usememos/memos/store"
+)
+
+func (s *APIService) ListMemoReactions(ctx context.Context, request *apipb.ListMemoReactionsRequest) (*apipb.ListMemoReactionsResponse, error) {
+	// Extract memo UID and check visibility.
+	memoUID, err := ExtractMemoUIDFromName(request.Parent)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid memo name: %v", err)
+	}
+	memo, err := s.Store.GetMemo(ctx, &store.FindMemo{UID: &memoUID})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get memo: %v", err)
+	}
+	if memo == nil {
+		return nil, status.Errorf(codes.NotFound, "memo not found")
+	}
+
+	if err := s.checkMemoReadAccess(ctx, memo); err != nil {
+		return nil, err
+	}
+
+	reactions, err := s.Store.ListReactions(ctx, &store.FindReaction{
+		MemoID: &memo.ID,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list reactions")
+	}
+
+	response := &apipb.ListMemoReactionsResponse{
+		Reactions: []*apipb.Reaction{},
+	}
+	response.Reactions, err = s.convertReactionsFromStoreWithCreators(ctx, reactions, nil, buildMemoName(memo.UID))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to convert reactions")
+	}
+	return response, nil
+}
+
+func (s *APIService) UpsertMemoReaction(ctx context.Context, request *apipb.UpsertMemoReactionRequest) (*apipb.Reaction, error) {
+	user, err := s.fetchCurrentUser(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get current user")
+	}
+	if user == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+	if err := s.throttleAndCharge(ratelimit.ScopeWriteUser, userKey(user.ID), 1); err != nil {
+		return nil, err
+	}
+	if request.GetReaction() == nil {
+		return nil, status.Error(codes.InvalidArgument, "reaction is required")
+	}
+
+	// Extract memo UID and check visibility before allowing reaction.
+	memoUID, err := ExtractMemoUIDFromName(request.Parent)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid memo name: %v", err)
+	}
+	memo, err := s.Store.GetMemo(ctx, &store.FindMemo{UID: &memoUID})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get memo: %v", err)
+	}
+	if memo == nil {
+		return nil, status.Errorf(codes.NotFound, "memo not found")
+	}
+
+	if err := s.checkMemoReadAccess(ctx, memo); err != nil {
+		return nil, err
+	}
+	reaction, err := s.Store.UpsertReaction(ctx, &store.Reaction{
+		CreatorID:    user.ID,
+		MemoID:       memo.ID,
+		ReactionType: request.Reaction.ReactionType,
+		Policy:       reactionWritePolicy(user.ID),
+	})
+	if err != nil {
+		return nil, mapReactionMutationError(err, "failed to upsert reaction")
+	}
+
+	memoName := buildMemoName(memo.UID)
+	reactionMessage, err := s.convertReactionFromStore(ctx, reaction, memoName)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to convert reaction")
+	}
+
+	s.SSEHub.publishMemoChanged()
+
+	return reactionMessage, nil
+}
+
+func (s *APIService) DeleteMemoReaction(ctx context.Context, request *apipb.DeleteMemoReactionRequest) (*emptypb.Empty, error) {
+	user, err := s.fetchCurrentUser(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+	}
+	if user == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+
+	memoUID, reactionID, err := ExtractMemoReactionIDFromName(request.Name)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid reaction name: %v", err)
+	}
+
+	// Get reaction and check ownership.
+	reaction, err := s.Store.GetReaction(ctx, &store.FindReaction{
+		ID: &reactionID,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get reaction")
+	}
+	if reaction == nil {
+		// Return permission denied to avoid revealing if reaction exists.
+		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+	}
+
+	if reaction.CreatorID != user.ID && !access.IsInstanceAdmin(user) {
+		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+	}
+	memo, err := s.Store.GetMemo(ctx, &store.FindMemo{ID: &reaction.MemoID})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get memo")
+	}
+	if memo == nil || memo.UID != memoUID {
+		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+	}
+	if err := s.Store.DeleteReaction(ctx, &store.DeleteReaction{
+		ID:          &reactionID,
+		MemoID:      &reaction.MemoID,
+		ActorUserID: &user.ID,
+		Policy:      reactionWritePolicy(user.ID),
+	}); err != nil {
+		return nil, mapReactionMutationError(err, "failed to delete reaction")
+	}
+
+	s.SSEHub.publishMemoChanged()
+
+	return &emptypb.Empty{}, nil
+}
+
+func reactionWritePolicy(actorUserID int32) *store.ReactionWritePolicy {
+	return &store.ReactionWritePolicy{ActorUserID: actorUserID}
+}
+
+func mapReactionMutationError(err error, operation string) error {
+	switch {
+	case stderrors.Is(err, store.ErrReactionMemoNotFound):
+		return status.Error(codes.NotFound, "memo not found")
+	case stderrors.Is(err, store.ErrReactionPermissionDenied):
+		return status.Error(codes.PermissionDenied, "permission denied")
+	default:
+		return mapMemoWriteError(err, operation)
+	}
+}
+
+func (s *APIService) convertReactionFromStore(ctx context.Context, reaction *store.Reaction, memoName string) (*apipb.Reaction, error) {
+	creatorsByID, err := s.listUsersByIDWithExisting(ctx, []int32{reaction.CreatorID}, nil)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get reaction creator")
+	}
+	reactionMessage, err := convertReactionFromStoreWithCreators(reaction, creatorsByID, memoName)
+	if err != nil {
+		slog.Warn("Failed to convert reaction with missing creator",
+			slog.Int64("reaction_id", int64(reaction.ID)),
+			slog.Int64("creator_id", int64(reaction.CreatorID)),
+			slog.Int64("memo_id", int64(reaction.MemoID)),
+		)
+		return nil, status.Errorf(codes.NotFound, "reaction creator not found")
+	}
+	return reactionMessage, nil
+}
+
+// AddAnonymousMemoReaction records one verified, anonymous addition without an identity.
+func (s *APIService) AddAnonymousMemoReaction(ctx context.Context, request *apipb.AddAnonymousMemoReactionRequest) (*apipb.Reaction, error) {
+	challenge, err := s.resolveAnonymousReactionChallenge(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to get anonymous reaction configuration")
+	}
+	if challenge == nil {
+		return nil, status.Error(codes.FailedPrecondition, "anonymous reactions are disabled")
+	}
+	if err := s.throttleAndCharge(ratelimit.ScopeAnonymousReactionIP, clientip.FromContext(ctx), 1); err != nil {
+		return nil, err
+	}
+	memoUID, err := ExtractMemoUIDFromName(request.Parent)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid memo name")
+	}
+	setting, err := s.Store.GetInstanceMemoRelatedSetting(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to get reaction settings")
+	}
+	if len(request.ReactionType) > 256 || !slices.Contains(setting.Reactions, request.ReactionType) {
+		return nil, status.Error(codes.InvalidArgument, "invalid reaction type")
+	}
+	memo, err := s.Store.GetMemo(ctx, &store.FindMemo{UID: &memoUID})
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to get memo")
+	}
+	if memo == nil {
+		return nil, status.Error(codes.NotFound, "memo not found")
+	}
+	// Resolve access as an anonymous reader even if the request has a signed-in identity.
+	accessSetting, err := s.Store.GetInstanceAccessSetting(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to get instance access")
+	}
+	facts, err := access.ResolveMemoReadContext(ctx, s.Store, memo, nil, accessSetting.AccessMode == storepb.InstanceAccessMode_INSTANCE_ACCESS_MODE_PUBLIC, nil)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to check memo access")
+	}
+	if !access.CheckMemoReadContext(facts).Allowed() || memo.RowStatus != store.Normal || memo.Visibility != store.Public || memo.SpaceID != nil {
+		return nil, status.Error(codes.PermissionDenied, "memo does not allow anonymous reactions")
+	}
+	if err := verifyChallenge(ctx, challenge, ratelimit.ScopeAnonymousReactionIP); err != nil {
+		return nil, err
+	}
+	reaction, err := s.Store.AddAnonymousReaction(ctx, memo.ID, request.ReactionType)
+	if err != nil {
+		return nil, mapReactionMutationError(err, "failed to add anonymous reaction")
+	}
+	message, err := convertReactionFromStoreWithCreators(reaction, nil, buildMemoName(memo.UID))
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to convert anonymous reaction")
+	}
+	s.SSEHub.publishMemoChanged()
+	return message, nil
+}

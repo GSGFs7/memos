@@ -354,9 +354,6 @@ func TestReactionInsertedAfterMemoCleanupStartsIsRemoved(t *testing.T) {
 }
 
 func TestReactionUpsertBlocksWhileMemoDeleteIsUncommitted(t *testing.T) {
-	if getDriverFromEnv() == "d1" {
-		t.Skip("D1 has no interactive transactions, so an uncommitted delete cannot hold a lock")
-	}
 	setupContext := context.Background()
 	ts := NewTestingStore(setupContext, t)
 	t.Cleanup(func() {
@@ -547,7 +544,7 @@ func TestAnonymousReactionMigration(t *testing.T) {
 	require.NoError(t, err)
 	setting, err := ts.GetInstanceBasicSetting(ctx)
 	require.NoError(t, err)
-	setting.SchemaVersion = "0.31.8"
+	setting.SchemaVersion = "26.10.1"
 	_, err = ts.UpsertInstanceSetting(ctx, &storepb.InstanceSetting{Key: storepb.InstanceSettingKey_BASIC, Value: &storepb.InstanceSetting_BasicSetting{BasicSetting: setting}})
 	require.NoError(t, err)
 	require.NoError(t, ts.Migrate(ctx))

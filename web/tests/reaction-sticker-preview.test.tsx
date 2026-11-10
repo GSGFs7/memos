@@ -2,9 +2,9 @@ import { create } from "@bufbuild/protobuf";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ReactionView from "@/components/MemoReactionListView/ReactionView";
-import { State } from "@/types/proto/api/v1/common_pb";
-import { MemoSchema } from "@/types/proto/api/v1/memo_service_pb";
-import { UserSchema } from "@/types/proto/api/v1/user_service_pb";
+import { State } from "@/types/proto/api/common_pb";
+import { MemoSchema } from "@/types/proto/api/memo_service_pb";
+import { UserSchema } from "@/types/proto/api/user_service_pb";
 
 const actions = vi.hoisted(() => ({ click: vi.fn(), canReact: true }));
 vi.mock("@/components/MemoReactionListView/hooks", () => ({

@@ -2,7 +2,7 @@ import { type ReactElement, useEffect, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useInstance } from "@/contexts/InstanceContext";
 import { cn } from "@/lib/utils";
-import type { InstanceSetting_ReactionSticker } from "@/types/proto/api/v1/instance_service_pb";
+import type { InstanceSetting_ReactionSticker } from "@/types/proto/api/instance_service_pb";
 import { useTranslate } from "@/utils/i18n";
 
 interface Props {

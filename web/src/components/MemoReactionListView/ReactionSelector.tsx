@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useInstance } from "@/contexts/InstanceContext";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
-import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
+import type { Memo } from "@/types/proto/api/memo_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import { useReactionActions } from "./hooks";
 import ReactionContent from "./ReactionContent";
@@ -44,7 +44,7 @@ const ReactionSelector = ({ memo, trigger }: Props) => {
         >
           <SmilePlusIcon className="size-4" strokeWidth={1.8} />
         </PopoverTrigger>
-        <PopoverContent align="center" className="max-w-[90vw] sm:max-w-md">
+        <PopoverContent align="center" className="max-w-[90vw] transition-none sm:max-w-md">
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1 max-h-64 overflow-y-auto">
             {memoRelatedSetting.reactions.map((reactionType) => (
               <ReactionPreview key={reactionType} reactionType={reactionType}>

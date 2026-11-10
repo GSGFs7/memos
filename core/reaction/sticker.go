@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	_ "golang.org/x/image/webp"
+	_ "golang.org/x/image/webp" // Register the WebP image decoder.
 
 	storepb "github.com/usememos/memos/proto/gen/store"
 )

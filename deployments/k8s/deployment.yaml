@@ -47,13 +47,13 @@ spec:
             memory: 512Mi
         startupProbe:
           httpGet:
-            path: /api/v1/instance/profile
+            path: /api/instance/profile
             port: http
           periodSeconds: 5
           failureThreshold: 60
         readinessProbe:
           httpGet:
-            path: /api/v1/instance/profile
+            path: /api/instance/profile
             port: http
           periodSeconds: 10
         livenessProbe:

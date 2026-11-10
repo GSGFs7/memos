@@ -1,4 +1,4 @@
-import type { InstanceSetting_ReactionSticker } from "@/types/proto/api/v1/instance_service_pb";
+import type { InstanceSetting_ReactionSticker } from "@/types/proto/api/instance_service_pb";
 
 interface Props {
   reactionType: string;

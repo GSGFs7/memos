@@ -3,12 +3,15 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MemoRelatedSettings from "@/components/Settings/MemoRelatedSettings";
 import {
+  type ConfigurationStatus,
+  ConfigurationStatusSchema,
   type InstanceSetting,
   InstanceSetting_AnonymousReactionSettingSchema,
   InstanceSetting_Key,
   InstanceSetting_MemoRelatedSettingSchema,
+  InstanceSetting_ReactionStickerSchema,
   InstanceSettingSchema,
-} from "@/types/proto/api/v1/instance_service_pb";
+} from "@/types/proto/api/instance_service_pb";
 
 const mocks = vi.hoisted(() => ({
   instance: {
@@ -20,6 +23,12 @@ const mocks = vi.hoisted(() => ({
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
 }));
+
+const configuration = vi.hoisted(() => ({ status: undefined as ConfigurationStatus | undefined }));
+vi.mock("@/hooks/useConfigurationQueries", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useConfigurationQueries")>();
+  return { ...actual, useManagedResource: (name: string) => actual.findManagedResource(configuration.status, name) };
+});
 
 const anonymousSetting = create(InstanceSettingSchema, {
   name: "instance/settings/ANONYMOUS_REACTION",
@@ -63,56 +72,37 @@ describe("<MemoRelatedSettings>", () => {
   afterEach(() => vi.unstubAllGlobals());
   beforeEach(() => {
     mocks.instance.memoRelatedSetting = create(InstanceSetting_MemoRelatedSettingSchema, {
-      contentLengthLimit: 32_768,
-      enableDoubleClickEdit: false,
       reactions: ["thumbs-up"],
     });
     mocks.instance.updateSetting.mockReset().mockResolvedValue(undefined);
     mocks.instance.fetchSetting.mockReset().mockResolvedValue(undefined);
     mocks.toastError.mockReset();
     mocks.toastSuccess.mockReset();
+    configuration.status = undefined;
   });
 
-  it.each([8_192, 16_384])("saves a valid %i-byte limit in the memo-related setting", async (contentLengthLimit) => {
+  it("saves only the reaction list", async () => {
     render(<MemoRelatedSettings />);
 
-    const input = screen.getByRole("spinbutton", { name: "setting.memo.content-length-limit" });
-    expect(input).toHaveAttribute("min", "8192");
-    expect(input).toHaveAttribute("max", "2147483647");
-    expect(input).toHaveAttribute("step", "1");
-    expect(screen.getByText("setting.memo.content-length-limit-minimum")).toBeVisible();
-
-    fireEvent.change(input, { target: { value: String(contentLengthLimit) } });
+    fireEvent.change(screen.getByPlaceholderText("setting.memo.reaction-placeholder"), { target: { value: "heart" } });
+    fireEvent.click(screen.getByRole("button", { name: "setting.memo.add-reaction" }));
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
-
     await waitFor(() => expect(mocks.instance.updateSetting).toHaveBeenCalledTimes(1));
     const setting = mocks.instance.updateSetting.mock.calls[0][0] as InstanceSetting;
     expect(setting.name).toBe("instance/settings/MEMO_RELATED");
-    expect(setting.value.case).toBe("memoRelatedSetting");
-    if (setting.value.case !== "memoRelatedSetting") {
-      throw new Error("Expected memo-related setting payload");
-    }
-    expect(setting.value.value.contentLengthLimit).toBe(contentLengthLimit);
-    expect(setting.value.value.reactions).toEqual(["thumbs-up"]);
+    if (setting.value.case !== "memoRelatedSetting") throw new Error("Expected memo-related setting");
+    expect(setting.value.value).toEqual(create(InstanceSetting_MemoRelatedSettingSchema, { reactions: ["thumbs-up", "heart"] }));
     expect(mocks.instance.fetchSetting).toHaveBeenCalledWith(InstanceSetting_Key.MEMO_RELATED);
-    expect(mocks.toastError).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["an empty value", ""],
-    ["a value below the minimum", "8191"],
-    ["a fractional value", "8192.5"],
-    ["a value above int32", "2147483648"],
-  ])("blocks %s before calling the update API", (_scenario, value) => {
+  it("locks the reactions configuration manages", () => {
+    configuration.status = create(ConfigurationStatusSchema, {
+      managedResources: [{ resource: "instance/settings/MEMO_RELATED", source: "memo.json", managedFields: ["*"] }],
+    });
     render(<MemoRelatedSettings />);
-
-    const input = screen.getByRole("spinbutton", { name: "setting.memo.content-length-limit" });
-    fireEvent.change(input, { target: { value } });
-    fireEvent.click(screen.getByRole("button", { name: "common.save" }));
-
-    expect(mocks.instance.updateSetting).not.toHaveBeenCalled();
-    expect(mocks.instance.fetchSetting).not.toHaveBeenCalled();
-    expect(mocks.toastError).toHaveBeenCalledWith("setting.memo.content-length-limit-error");
+    expect(screen.getByPlaceholderText("setting.memo.reaction-placeholder")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "setting.memo.remove-reaction" })).toBeDisabled();
+    expect(screen.getByText("memo.json")).toBeInTheDocument();
   });
 
   it("keeps the drop highlight when moving between children and clears it on exit", () => {
@@ -173,9 +163,10 @@ describe("<MemoRelatedSettings>", () => {
   ])("handles $scenario when uploading", async ({ content, filename, active, duplicate }) => {
     mockStickerImage();
     mocks.instance.memoRelatedSetting = create(InstanceSetting_MemoRelatedSettingSchema, {
-      contentLengthLimit: 32_768,
       reactions: active ? ["sticker:original"] : [],
-      reactionStickers: { "sticker:original": { name: "wave.png", image: "data:image/png;base64,aW1hZ2U=" } },
+      reactionStickers: {
+        "sticker:original": create(InstanceSetting_ReactionStickerSchema, { name: "wave.png", image: "data:image/png;base64,aW1hZ2U=" }),
+      },
     });
     render(<MemoRelatedSettings />);
     fireEvent.change(screen.getByLabelText("setting.memo.upload-sticker"), {
@@ -203,11 +194,10 @@ describe("<MemoRelatedSettings>", () => {
     const stickers = Object.fromEntries(
       Array.from({ length: 40 }, (_, i) => [
         `sticker:${i}`,
-        { name: `${i}.png`, image: `data:image/png;base64,${btoa("x".repeat(32 * 1024))}` },
+        create(InstanceSetting_ReactionStickerSchema, { name: `${i}.png`, image: `data:image/png;base64,${btoa("x".repeat(32 * 1024))}` }),
       ]),
     );
     mocks.instance.memoRelatedSetting = create(InstanceSetting_MemoRelatedSettingSchema, {
-      contentLengthLimit: 32_768,
       reactions: Object.keys(stickers),
       reactionStickers: stickers,
     });

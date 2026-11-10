@@ -9,9 +9,9 @@ import {
   startAnonymousReaction,
 } from "@/components/MemoReactionListView/anonymous-reactions";
 import { useReactionActions, useReactionGroups } from "@/components/MemoReactionListView/hooks";
-import { State } from "@/types/proto/api/v1/common_pb";
-import { MemoSchema, ReactionSchema, Visibility } from "@/types/proto/api/v1/memo_service_pb";
-import { UserSchema } from "@/types/proto/api/v1/user_service_pb";
+import { State } from "@/types/proto/api/common_pb";
+import { MemoSchema, ReactionSchema, Visibility } from "@/types/proto/api/memo_service_pb";
+import { UserSchema } from "@/types/proto/api/user_service_pb";
 
 const mocks = vi.hoisted(() => ({ add: vi.fn(), error: vi.fn() }));
 vi.mock("@/connect", () => ({ memoServiceClient: { addAnonymousMemoReaction: mocks.add } }));
@@ -21,7 +21,7 @@ vi.mock("@/contexts/InstanceContext", () => ({
   useInstance: () => ({ profile: { anonymousReactionChallenge: { provider: "turnstile", siteKey: "public" } } }),
 }));
 vi.mock("@/utils/i18n", () => ({ useTranslate: () => (key: string) => key }));
-vi.mock("@/components/MemoContent/MentionResolutionContext", () => ({
+vi.mock("@/contexts/MentionResolutionContext", () => ({
   useResolvedUsersByNames: () => new Map([["users/alice", create(UserSchema, { name: "users/alice" })]]),
 }));
 
@@ -76,7 +76,7 @@ describe("anonymous reactions", () => {
       result.current.challengeDialog.props.onToken("proof");
       result.current.challengeDialog.props.onToken("proof");
     });
-    expect(mocks.add).toHaveBeenCalledWith({ name: memo.name, reactionType: "👍" }, { headers: { "Challenge-Token": "proof" } });
+    expect(mocks.add).toHaveBeenCalledWith({ parent: memo.name, reactionType: "👍" }, { headers: { "Challenge-Token": "proof" } });
     expect(result.current.hasReacted("👍")).toBe(true);
     expect(result.current.challengeDialog.props.reactionType).toBeNull();
     await act(async () => {

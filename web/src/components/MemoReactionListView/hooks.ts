@@ -2,15 +2,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createElement, useMemo, useState, useSyncExternalStore } from "react";
 import toast from "react-hot-toast";
 import { CHALLENGE_TOKEN_HEADER } from "@/components/ChallengeWidget";
-import { useResolvedUsersByNames } from "@/components/MemoContent/MentionResolutionContext";
 import { memoServiceClient } from "@/connect";
 import { useInstance } from "@/contexts/InstanceContext";
+import { useResolvedUsersByNames } from "@/contexts/MentionResolutionContext";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { memoKeys } from "@/hooks/useMemoQueries";
-import { State } from "@/types/proto/api/v1/common_pb";
-import type { Memo, Reaction } from "@/types/proto/api/v1/memo_service_pb";
-import { Visibility } from "@/types/proto/api/v1/memo_service_pb";
-import type { User } from "@/types/proto/api/v1/user_service_pb";
+import { State } from "@/types/proto/api/common_pb";
+import type { Memo, Reaction } from "@/types/proto/api/memo_service_pb";
+import { Visibility } from "@/types/proto/api/memo_service_pb";
+import type { User } from "@/types/proto/api/user_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import AnonymousReactionDialog from "./AnonymousReactionDialog";
 import {
@@ -79,7 +79,7 @@ export const useReactionActions = ({ memo, onComplete }: UseReactionActionsOptio
     setPending(true);
     try {
       await memoServiceClient.addAnonymousMemoReaction(
-        { name: memo.name, reactionType: selectedType },
+        { parent: memo.name, reactionType: selectedType },
         { headers: { [CHALLENGE_TOKEN_HEADER]: token } },
       );
       finishAnonymousReaction(memo.name, selectedType, true);
@@ -136,7 +136,7 @@ export const useReactionActions = ({ memo, onComplete }: UseReactionActionsOptio
         await Promise.all(reactions.map((reaction) => memoServiceClient.deleteMemoReaction({ name: reaction.name })));
       } else {
         await memoServiceClient.upsertMemoReaction({
-          name: memo.name,
+          parent: memo.name,
           reaction: { reactionType },
         });
       }

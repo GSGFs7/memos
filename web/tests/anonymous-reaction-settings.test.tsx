@@ -8,7 +8,7 @@ import {
   InstanceSetting_Key,
   InstanceSetting_MemoRelatedSettingSchema,
   InstanceSettingSchema,
-} from "@/types/proto/api/v1/instance_service_pb";
+} from "@/types/proto/api/instance_service_pb";
 
 const mocks = vi.hoisted(() => ({
   query: { data: undefined as unknown, isLoading: false, isError: false, refetch: vi.fn() },
@@ -21,6 +21,7 @@ vi.mock("@/hooks/useInstanceQueries", () => ({
   useInstanceSetting: () => mocks.query,
   useUpdateInstanceSetting: () => ({ mutateAsync: mocks.save, isPending: false }),
 }));
+vi.mock("@/hooks/useConfigurationQueries", () => ({ useManagedResource: () => undefined, isFieldManaged: () => false }));
 vi.mock("@/contexts/InstanceContext", () => ({
   useInstance: () => ({
     profile: {},
@@ -36,7 +37,7 @@ beforeEach(() => {
   mocks.save.mockReset().mockResolvedValue(undefined);
   mocks.updateMemo.mockReset().mockResolvedValue(undefined);
   mocks.fetchSetting.mockReset().mockResolvedValue(undefined);
-  mocks.memoSetting = create(InstanceSetting_MemoRelatedSettingSchema, { contentLengthLimit: 8192, reactions: ["👍"] });
+  mocks.memoSetting = create(InstanceSetting_MemoRelatedSettingSchema, { reactions: ["👍"] });
   mocks.query.isLoading = false;
   mocks.query.isError = false;
   mocks.query.data = create(InstanceSettingSchema, {
@@ -128,7 +129,8 @@ describe("anonymous interaction settings", () => {
 
   it("saves memo and anonymous settings from the same button", async () => {
     render(<MemoRelatedSettings />);
-    fireEvent.change(screen.getByRole("spinbutton", { name: "setting.memo.content-length-limit" }), { target: { value: "16384" } });
+    fireEvent.change(screen.getByPlaceholderText("setting.memo.reaction-placeholder"), { target: { value: "❤️" } });
+    fireEvent.click(screen.getByRole("button", { name: "setting.memo.add-reaction" }));
     fireEvent.click(screen.getByRole("switch", { name: "setting.anonymous-reaction.enabled" }));
     fireEvent.change(screen.getByLabelText("Site Key"), { target: { value: "new-key" } });
     fireEvent.change(screen.getByLabelText("Secret Key"), { target: { value: "new-secret" } });
@@ -136,7 +138,7 @@ describe("anonymous interaction settings", () => {
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
     expect(mocks.updateMemo).toHaveBeenCalledTimes(1);
-    expect(mocks.updateMemo.mock.calls[0][0].value.value.contentLengthLimit).toBe(16384);
+    expect(mocks.updateMemo.mock.calls[0][0].value.value.reactions).toEqual(["👍", "❤️"]);
     expect(mocks.save.mock.calls[0][0].value.value.siteKey).toBe("new-key");
   });
 

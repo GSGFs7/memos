@@ -2,7 +2,7 @@ import { create } from "@bufbuild/protobuf";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ReactionSelector from "@/components/MemoReactionListView/ReactionSelector";
-import { MemoSchema } from "@/types/proto/api/v1/memo_service_pb";
+import { MemoSchema } from "@/types/proto/api/memo_service_pb";
 
 const react = vi.hoisted(() => vi.fn());
 

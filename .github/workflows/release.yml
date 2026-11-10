@@ -14,6 +14,7 @@ concurrency:
 
 permissions:
   contents: read
+  packages: read
 
 env:
   NODE_VERSION: "24"
@@ -46,7 +47,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           echo "name=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-          echo "version=0.31.0-personal.${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+          echo "version=$(bash scripts/release_version.sh development-version)" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4.2.0
